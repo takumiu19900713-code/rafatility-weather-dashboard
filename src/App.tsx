@@ -10,6 +10,7 @@ import { AIAdviceCard } from './components/AIAdviceCard';
 import { WorkLogCard } from './components/WorkLogCard';
 import { AILearningCard } from './components/AILearningCard';
 import { RainNowcastCard } from './components/RainNowcastCard';
+import { KnowledgeCard } from './components/KnowledgeCard';
 import { SettingsPanel } from './components/SettingsPanel';
 import { FieldRegistrationModal } from './components/FieldRegistrationModal';
 import { useWeatherData } from './hooks/useWeatherData';
@@ -17,6 +18,7 @@ import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
 import { useCorrectionParams } from './hooks/useCorrectionParams';
 import { useFields } from './hooks/useFields';
+import { useKnowledge } from './hooks/useKnowledge';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 
@@ -26,6 +28,7 @@ function App() {
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { rules, addRule, toggleRule, deleteRule } = useKnowledge();
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
 
@@ -42,12 +45,17 @@ function App() {
   const crackRisk = useMemo(() => {
     if (correctedForecast.length === 0) return null;
     const precips = correctedForecast.slice(0, 7).map((d) => d.correctedPrecipitation);
-    return calcCrackRisk(precips);
-  }, [correctedForecast]);
+    return calcCrackRisk(precips, {
+      past14,
+      roofType: selectedField?.roofType ?? 'open',
+      fieldId: selectedFieldId,
+      knowledgeRules: rules,
+      humidityMax: today?.humidityMax ?? 0,
+    });
+  }, [correctedForecast, past14, selectedField, selectedFieldId, rules, today]);
 
   const { logs: workLogs } = useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
 
-  // Also compute past14 corrected (already done via useWeatherCorrection)
   const correctedPast14Final = useMemo(() => {
     if (!selectedField || past14.length === 0) return [];
     return past14.map((w) => applyWeatherCorrection(w, selectedField, params));
@@ -75,7 +83,6 @@ function App() {
 
         {/* Main grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* Map */}
           <div className="md:col-span-1 lg:col-span-1">
             <FieldMap
               fields={fields}
@@ -83,16 +90,12 @@ function App() {
               onSelectField={setSelectedFieldId}
             />
           </div>
-
-          {/* Weather summary */}
           <div className="md:col-span-1 lg:col-span-1">
             <WeatherSummaryCard
               today={today}
               fieldName={selectedField?.name ?? ''}
             />
           </div>
-
-          {/* Crack risk gauge */}
           <div className="md:col-span-2 lg:col-span-1">
             <CrackRiskGauge risk={crackRisk} />
           </div>
@@ -114,6 +117,16 @@ function App() {
           />
           <AILearningCard logs={workLogs} />
         </div>
+
+        {/* 農家ナレッジルール */}
+        <KnowledgeCard
+          fieldId={selectedFieldId}
+          fieldName={selectedField?.name ?? ''}
+          rules={rules}
+          onAdd={addRule}
+          onToggle={toggleRule}
+          onDelete={deleteRule}
+        />
 
         {/* Forecast table */}
         <ForecastTable forecast={correctedForecast} />

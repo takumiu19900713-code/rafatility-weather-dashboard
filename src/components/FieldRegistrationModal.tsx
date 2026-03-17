@@ -20,6 +20,12 @@ const CROP_OPTIONS = [
   '巨峰', 'デラウェア', '藤稔', 'マスカットベーリーA', '瀬戸ジャイアンツ', 'その他',
 ];
 
+const ROOF_OPTIONS: { value: Field['roofType']; label: string; desc: string }[] = [
+  { value: 'open',           label: '露地栽培',     desc: '直接雨が当たる' },
+  { value: 'unheated_house', label: '無加温ハウス', desc: '雨は防げるが温度制御なし' },
+  { value: 'heated_house',   label: '加温ハウス',   desc: '温湿度管理あり' },
+];
+
 type Step = 'address' | 'confirm' | 'details';
 
 interface GeoResult {
@@ -39,6 +45,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
   const [form, setForm] = useState({
     name: '',
     aspect: 'south' as Field['aspect'],
+    roofType: 'open' as Field['roofType'],
     crop: 'ピオーネ',
     area: '',
     manager: '',
@@ -108,6 +115,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
       lon: geoResult.lon,
       elevation: geoResult.elevation,
       aspect: form.aspect,
+      roofType: form.roofType,
       location: geoResult.name,
       crop: form.crop,
       area: form.area ? parseFloat(form.area) : undefined,
@@ -117,7 +125,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
     setStep('address');
     setAddress('');
     setGeoResult(null);
-    setForm({ name: '', aspect: 'south', crop: 'ピオーネ', area: '', manager: '' });
+    setForm({ name: '', aspect: 'south', roofType: 'open', crop: 'ピオーネ', area: '', manager: '' });
     onClose();
   };
 
@@ -238,6 +246,27 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
                     placeholder="例: 第1圃場"
                     className="w-full border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">栽培形態 * <span className="text-gray-400">（裂果リスク計算に影響）</span></label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ROOF_OPTIONS.map(o => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, roofType: o.value }))}
+                        className={`border rounded-xl px-2 py-2 text-xs text-center transition-colors ${
+                          form.roofType === o.value
+                            ? 'bg-primary text-white border-primary'
+                            : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        <p className="font-bold">{o.label}</p>
+                        <p className="opacity-75 text-xs mt-0.5">{o.desc}</p>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
