@@ -23,7 +23,7 @@ import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 
 function App() {
-  const { fields, addField, deleteField } = useFields();
+  const { fields, addField, deleteField, updateField } = useFields();
   const [selectedFieldId, setSelectedFieldId] = useState<string>(fields[0]?.id ?? 'F001');
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
@@ -79,6 +79,7 @@ function App() {
           onSelect={setSelectedFieldId}
           onAddField={() => setFieldModalOpen(true)}
           onDeleteField={deleteField}
+          onUpdateRoofType={(id, roofType) => updateField(id, { roofType })}
         />
 
         {/* Main grid */}

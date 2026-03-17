@@ -7,9 +7,21 @@ interface Props {
   onSelect: (id: string) => void;
   onAddField: () => void;
   onDeleteField?: (id: string) => void;
+  onUpdateRoofType?: (id: string, roofType: Field['roofType']) => void;
 }
 
-export const FieldSelector: React.FC<Props> = ({ fields, selectedId, onSelect, onAddField, onDeleteField }) => {
+const ROOF_LABELS: Record<NonNullable<Field['roofType']>, string> = {
+  open:           '露地',
+  unheated_house: '無加温ハウス',
+  heated_house:   '加温ハウス',
+};
+
+export const FieldSelector: React.FC<Props> = ({
+  fields, selectedId, onSelect, onAddField, onDeleteField, onUpdateRoofType,
+}) => {
+  const selectedField = fields.find(f => f.id === selectedId);
+  const currentRoof = selectedField?.roofType ?? 'open';
+
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex items-center justify-between mb-3">
@@ -21,7 +33,7 @@ export const FieldSelector: React.FC<Props> = ({ fields, selectedId, onSelect, o
           ＋ 圃場を追加
         </button>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-3">
         {fields.map((f) => (
           <div key={f.id} className="relative group">
             <button
@@ -47,6 +59,28 @@ export const FieldSelector: React.FC<Props> = ({ fields, selectedId, onSelect, o
           </div>
         ))}
       </div>
+
+      {/* 栽培形態クイック切替 */}
+      {onUpdateRoofType && selectedField && (
+        <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+          <span className="text-xs text-gray-500 shrink-0">栽培形態：</span>
+          <div className="flex gap-1">
+            {(['open', 'unheated_house', 'heated_house'] as const).map(rt => (
+              <button
+                key={rt}
+                onClick={() => onUpdateRoofType(selectedId, rt)}
+                className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
+                  currentRoof === rt
+                    ? 'bg-primary text-white border-primary font-bold'
+                    : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {ROOF_LABELS[rt]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
