@@ -9,6 +9,7 @@ import { PrecipitationChart } from './components/PrecipitationChart';
 import { AIAdviceCard } from './components/AIAdviceCard';
 import { WorkLogCard } from './components/WorkLogCard';
 import { AILearningCard } from './components/AILearningCard';
+import { RainNowcastCard } from './components/RainNowcastCard';
 import { SettingsPanel } from './components/SettingsPanel';
 import { FieldRegistrationModal } from './components/FieldRegistrationModal';
 import { useWeatherData } from './hooks/useWeatherData';
@@ -28,7 +29,7 @@ function App() {
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
 
-  const { forecast, past14, loading, error, lastUpdated, refetch } = useWeatherData(
+  const { forecast, past14, hourly, loading, error, lastUpdated, refetch } = useWeatherData(
     selectedField?.lat ?? fields[0]?.lat ?? 34.92,
     selectedField?.lon ?? fields[0]?.lon ?? 133.05,
     selectedFieldId
@@ -96,6 +97,9 @@ function App() {
             <CrackRiskGauge risk={crackRisk} />
           </div>
         </div>
+
+        {/* Rain nowcast */}
+        <RainNowcastCard hourly={hourly} />
 
         {/* AI Advice */}
         <AIAdviceCard risk={crackRisk} field={selectedField} />

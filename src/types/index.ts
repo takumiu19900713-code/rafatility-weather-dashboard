@@ -45,6 +45,16 @@ export interface CrackRisk {
   };
 }
 
+// 時間別天気
+export interface HourlyWeather {
+  time: string;        // ISO datetime
+  hour: number;        // 0-23
+  precipitation: number;
+  precipProbability: number;
+  weatherCode: number;
+  temperature: number;
+}
+
 export interface WeatherApiResponse {
   daily: {
     time: string[];

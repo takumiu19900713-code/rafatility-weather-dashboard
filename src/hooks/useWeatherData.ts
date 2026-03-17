@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { DailyWeather, WeatherApiResponse } from '../types';
+import type { DailyWeather, HourlyWeather, WeatherApiResponse } from '../types';
 
 const CACHE_KEY_PREFIX = 'weather_cache_';
 const CACHE_DURATION_MS = 30 * 60 * 1000; // 30 minutes
@@ -25,6 +25,7 @@ function parseApiResponse(data: WeatherApiResponse): DailyWeather[] {
 export function useWeatherData(lat: number, lon: number, fieldId: string) {
   const [forecast, setForecast] = useState<DailyWeather[]>([]);
   const [past14, setPast14] = useState<DailyWeather[]>([]);
+  const [hourly, setHourly] = useState<HourlyWeather[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -52,27 +53,50 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
       const commonParams = `latitude=${lat}&longitude=${lon}&timezone=Asia%2FTokyo`;
       const dailyParams = 'daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weathercode,windspeed_10m_max,relative_humidity_2m_max';
 
-      const [forecastRes, pastRes] = await Promise.all([
+      const [forecastRes, pastRes, hourlyRes] = await Promise.all([
         fetch(`${base}?${commonParams}&${dailyParams}&forecast_days=7`),
         fetch(`${base}?${commonParams}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,weathercode,windspeed_10m_max,precipitation_probability_max&past_days=14&forecast_days=1`),
+        fetch(`${base}?${commonParams}&hourly=precipitation,precipitation_probability,weathercode,temperature_2m&forecast_days=2`),
       ]);
 
-      if (!forecastRes.ok || !pastRes.ok) throw new Error('APIエラーが発生しました');
+      if (!forecastRes.ok || !pastRes.ok || !hourlyRes.ok) throw new Error('APIエラーが発生しました');
 
       const forecastData: WeatherApiResponse = await forecastRes.json();
       const pastData: WeatherApiResponse = await pastRes.json();
+      const hourlyData = await hourlyRes.json();
 
       const parsedForecast = parseApiResponse(forecastData);
       const parsedPast = parseApiResponse(pastData);
 
+      // 時間別データをパース（現在時刻以降12時間分）
+      const nowHour = new Date().getHours();
+      const todayDate = new Date().toISOString().split('T')[0];
+      const parsedHourly: HourlyWeather[] = (hourlyData.hourly?.time ?? [])
+        .map((t: string, i: number) => ({
+          time: t,
+          hour: new Date(t).getHours(),
+          precipitation: hourlyData.hourly.precipitation[i] ?? 0,
+          precipProbability: hourlyData.hourly.precipitation_probability[i] ?? 0,
+          weatherCode: hourlyData.hourly.weathercode[i] ?? 0,
+          temperature: hourlyData.hourly.temperature_2m[i] ?? 0,
+        }))
+        .filter((h: HourlyWeather) => {
+          const d = h.time.split('T')[0];
+          if (d === todayDate) return h.hour >= nowHour;
+          return d > todayDate;
+        })
+        .slice(0, 12);
+
       setForecast(parsedForecast);
       setPast14(parsedPast);
+      setHourly(parsedHourly);
       const now = new Date();
       setLastUpdated(now);
 
       localStorage.setItem(cacheKey, JSON.stringify({
         data: parsedForecast,
         past14: parsedPast,
+        hourly: parsedHourly,
         timestamp: now.getTime(),
       }));
     } catch (e) {
@@ -84,6 +108,7 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
         const entry = JSON.parse(cached);
         setForecast(entry.data ?? []);
         setPast14(entry.past14 ?? []);
+        setHourly(entry.hourly ?? []);
         setLastUpdated(new Date(entry.timestamp));
       }
     } finally {
@@ -97,5 +122,5 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
     return () => clearInterval(interval);
   }, [fetchData]);
 
-  return { forecast, past14, loading, error, lastUpdated, refetch: fetchData };
+  return { forecast, past14, hourly, loading, error, lastUpdated, refetch: fetchData };
 }
