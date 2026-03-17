@@ -51,28 +51,37 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
     setGeocoding(true);
     setGeoError('');
     try {
-      // Step 1: Nominatim (OpenStreetMap) で日本語住所を検索
-      const nominatimHeaders = {
-        'Accept-Language': 'ja',
-        'User-Agent': 'RafatilityWeatherDashboard/1.0 (https://github.com/takumiu19900713-code/rafatility-weather-dashboard)',
-      };
-      // まず日本限定で検索、ヒットしなければ全世界で再試行
-      let nominatimData: Record<string, string>[] = [];
-      const url1 = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=3&accept-language=ja&countrycodes=jp&addressdetails=1`;
-      const res1 = await fetch(url1, { headers: nominatimHeaders });
-      nominatimData = await res1.json();
+      // Step 1: 国土地理院ジオコーダー（日本語住所専用・無料・APIキー不要）
+      let lat: number | null = null;
+      let lon: number | null = null;
+      let locationName = '';
 
-      if (!nominatimData.length) {
-        // 国コード制限なしで再試行
-        const url2 = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=3&accept-language=ja&addressdetails=1`;
-        const res2 = await fetch(url2, { headers: nominatimHeaders });
-        nominatimData = await res2.json();
+      const gsiRes = await fetch(
+        `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(address)}`
+      );
+      const gsiData = await gsiRes.json();
+
+      if (Array.isArray(gsiData) && gsiData.length > 0) {
+        const r = gsiData[0];
+        lon = r.geometry.coordinates[0];
+        lat = r.geometry.coordinates[1];
+        locationName = r.properties.title;
+      } else {
+        // フォールバック: Nominatim
+        const nomRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=3&countrycodes=jp`
+        );
+        const nomData = await nomRes.json();
+        if (!nomData.length) throw new Error(
+          '住所が見つかりませんでした。\n市区町村単位で入力してみてください。\n例: 庄原市総領町 / 三次市 / 新潟市南区醍醐'
+        );
+        lat = parseFloat(nomData[0].lat);
+        lon = parseFloat(nomData[0].lon);
+        const parts = nomData[0].display_name.split(',').map((s: string) => s.trim());
+        locationName = parts.slice(0, 3).join(' ');
       }
 
-      if (!nominatimData.length) throw new Error('住所が見つかりませんでした。\n例: 「庄原市総領町」「三次市」「新潟市南区醍醐」など市区町村単位で入力してみてください。');
-      const r = nominatimData[0];
-      const lat = parseFloat(r.lat);
-      const lon = parseFloat(r.lon);
+      if (lat === null || lon === null) throw new Error('座標の取得に失敗しました');
 
       // Step 2: Open-Meteo Elevation APIで標高取得
       const elevRes = await fetch(
@@ -81,12 +90,8 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
       const elevData = await elevRes.json();
       const elevation = Math.round(elevData.elevation?.[0] ?? 0);
 
-      // display_name は長いので先頭3パーツだけ使う。日本語名を優先
-      const parts = r.display_name.split(',').map((s: string) => s.trim()).filter(Boolean);
-      const locationName = parts.slice(0, 3).join(' ');
-      const shortName = parts[0];
       setGeoResult({ name: locationName, lat, lon, elevation });
-      setForm(f => ({ ...f, name: shortName }));
+      setForm(f => ({ ...f, name: locationName.split(/\s|　/)[0] }));
       setStep('confirm');
     } catch (e) {
       setGeoError(e instanceof Error ? e.message : 'エラーが発生しました');
@@ -156,7 +161,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
                     value={address}
                     onChange={e => setAddress(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleGeocode()}
-                    placeholder="例: 庄原市総領町、三次市、新潟市南区"
+                    placeholder="例: 庄原市総領町中領家 / 三次市粟屋 / 新潟市南区醍醐"
                     className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <button
@@ -172,7 +177,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
 
               <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700 space-y-1">
                 <p className="font-bold">🤖 自動取得される情報</p>
-                <p>✅ 緯度・経度 — OpenStreetMap Nominatim（日本語住所対応）</p>
+                <p>✅ 緯度・経度 — 国土地理院ジオコーダー（日本語住所専用）</p>
                 <p>✅ 標高 — Open-Meteo Elevation API（国土地理院DEM準拠）</p>
                 <p>⚙️ 斜面方向 — 次のステップで選択（農研機構標準補正値を適用）</p>
               </div>
