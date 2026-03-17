@@ -98,7 +98,8 @@ function App() {
       </main>
 
       <footer className="text-center text-xs text-gray-400 py-6 mt-4 border-t">
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.0
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.0 MVP<br />
+        広島県庄原市総領町中領家178
       </footer>
     </div>
   );
