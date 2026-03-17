@@ -52,12 +52,24 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
     setGeoError('');
     try {
       // Step 1: Nominatim (OpenStreetMap) で日本語住所を検索
-      const nominatimRes = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&accept-language=ja&countrycodes=jp`,
-        { headers: { 'Accept-Language': 'ja' } }
-      );
-      const nominatimData = await nominatimRes.json();
-      if (!nominatimData.length) throw new Error('住所が見つかりませんでした。もう少し広い範囲（市区町村名）で試してください。');
+      const nominatimHeaders = {
+        'Accept-Language': 'ja',
+        'User-Agent': 'RafatilityWeatherDashboard/1.0 (https://github.com/takumiu19900713-code/rafatility-weather-dashboard)',
+      };
+      // まず日本限定で検索、ヒットしなければ全世界で再試行
+      let nominatimData: Record<string, string>[] = [];
+      const url1 = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=3&accept-language=ja&countrycodes=jp&addressdetails=1`;
+      const res1 = await fetch(url1, { headers: nominatimHeaders });
+      nominatimData = await res1.json();
+
+      if (!nominatimData.length) {
+        // 国コード制限なしで再試行
+        const url2 = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=3&accept-language=ja&addressdetails=1`;
+        const res2 = await fetch(url2, { headers: nominatimHeaders });
+        nominatimData = await res2.json();
+      }
+
+      if (!nominatimData.length) throw new Error('住所が見つかりませんでした。\n例: 「庄原市総領町」「三次市」「新潟市南区醍醐」など市区町村単位で入力してみてください。');
       const r = nominatimData[0];
       const lat = parseFloat(r.lat);
       const lon = parseFloat(r.lon);
@@ -69,9 +81,12 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
       const elevData = await elevRes.json();
       const elevation = Math.round(elevData.elevation?.[0] ?? 0);
 
-      const locationName = r.display_name.split(',').slice(0, 3).join(' ').trim();
+      // display_name は長いので先頭3パーツだけ使う。日本語名を優先
+      const parts = r.display_name.split(',').map((s: string) => s.trim()).filter(Boolean);
+      const locationName = parts.slice(0, 3).join(' ');
+      const shortName = parts[0];
       setGeoResult({ name: locationName, lat, lon, elevation });
-      setForm(f => ({ ...f, name: r.display_name.split(',')[0].trim() }));
+      setForm(f => ({ ...f, name: shortName }));
       setStep('confirm');
     } catch (e) {
       setGeoError(e instanceof Error ? e.message : 'エラーが発生しました');
