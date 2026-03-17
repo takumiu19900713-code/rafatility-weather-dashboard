@@ -6,6 +6,10 @@ export interface Field {
   elevation: number;
   aspect: 'south' | 'southwest' | 'east' | 'north' | 'other';
   location: string;
+  crop?: string;        // 品種名
+  area?: number;        // 栽培面積 (a)
+  manager?: string;     // 管理担当者
+  isCustom?: boolean;   // ユーザー追加圃場
 }
 
 export interface DailyWeather {

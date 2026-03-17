@@ -10,24 +10,27 @@ import { AIAdviceCard } from './components/AIAdviceCard';
 import { WorkLogCard } from './components/WorkLogCard';
 import { AILearningCard } from './components/AILearningCard';
 import { SettingsPanel } from './components/SettingsPanel';
+import { FieldRegistrationModal } from './components/FieldRegistrationModal';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
 import { useCorrectionParams } from './hooks/useCorrectionParams';
+import { useFields } from './hooks/useFields';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
-import { FIELDS } from './data/fields';
 
 function App() {
-  const [selectedFieldId, setSelectedFieldId] = useState<string>(FIELDS[0].id);
+  const { fields, addField, deleteField } = useFields();
+  const [selectedFieldId, setSelectedFieldId] = useState<string>(fields[0]?.id ?? 'F001');
+  const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const { params, updateParams, resetParams } = useCorrectionParams();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const selectedField = FIELDS.find((f) => f.id === selectedFieldId) ?? null;
+  const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
 
   const { forecast, past14, loading, error, lastUpdated, refetch } = useWeatherData(
-    selectedField?.lat ?? FIELDS[0].lat,
-    selectedField?.lon ?? FIELDS[0].lon,
+    selectedField?.lat ?? fields[0]?.lat ?? 34.92,
+    selectedField?.lon ?? fields[0]?.lon ?? 133.05,
     selectedFieldId
   );
 
@@ -62,9 +65,11 @@ function App() {
 
         {/* Field selector */}
         <FieldSelector
-          fields={FIELDS}
+          fields={fields}
           selectedId={selectedFieldId}
           onSelect={setSelectedFieldId}
+          onAddField={() => setFieldModalOpen(true)}
+          onDeleteField={deleteField}
         />
 
         {/* Main grid */}
@@ -72,7 +77,7 @@ function App() {
           {/* Map */}
           <div className="md:col-span-1 lg:col-span-1">
             <FieldMap
-              fields={FIELDS}
+              fields={fields}
               selectedField={selectedField}
               onSelectField={setSelectedFieldId}
             />
@@ -134,6 +139,15 @@ function App() {
         params={params}
         onSave={updateParams}
         onReset={resetParams}
+      />
+
+      <FieldRegistrationModal
+        open={fieldModalOpen}
+        onClose={() => setFieldModalOpen(false)}
+        onSave={(fieldData) => {
+          const newField = addField(fieldData);
+          setSelectedFieldId(newField.id);
+        }}
       />
     </div>
   );
