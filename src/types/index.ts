@@ -53,3 +53,37 @@ export interface WeatherApiResponse {
     relative_humidity_2m_max: number[];
   };
 }
+
+// 作業種別
+export type WorkAction =
+  | 'irrigate'       // 散水した
+  | 'stop_irrigate'  // 散水停止
+  | 'harvest'        // 収穫した
+  | 'bagging'        // 袋かけ
+  | 'inspection';    // 点検した
+
+// 作業記録
+export interface WorkLog {
+  id: string;
+  fieldId: string;
+  date: string;          // YYYY-MM-DD
+  action: WorkAction;
+  crackRiskScore: number;
+  weatherSnapshot: {
+    tempMax: number;
+    tempMin: number;
+    precipitation: number;
+    precip7days: number;
+  };
+  outcome: 'good' | 'bad' | null; // 後から入力
+  note: string;
+}
+
+// AIが検出したパターン
+export interface LearnedPattern {
+  condition: string;   // 条件説明
+  action: WorkAction;
+  outcome: 'good' | 'bad';
+  count: number;
+  recommendation: string;
+}

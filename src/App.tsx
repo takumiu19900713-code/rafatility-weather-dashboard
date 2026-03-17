@@ -7,8 +7,11 @@ import { CrackRiskGauge } from './components/CrackRiskGauge';
 import { ForecastTable } from './components/ForecastTable';
 import { PrecipitationChart } from './components/PrecipitationChart';
 import { AIAdviceCard } from './components/AIAdviceCard';
+import { WorkLogCard } from './components/WorkLogCard';
+import { AILearningCard } from './components/AILearningCard';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
+import { useWorkLog } from './hooks/useWorkLog';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 import { FIELDS } from './data/fields';
@@ -33,6 +36,8 @@ function App() {
     const precips = correctedForecast.slice(0, 7).map((d) => d.correctedPrecipitation);
     return calcCrackRisk(precips);
   }, [correctedForecast]);
+
+  const { logs: workLogs } = useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
 
   // Also compute past14 corrected (already done via useWeatherCorrection)
   const correctedPast14Final = useMemo(() => {
@@ -86,6 +91,17 @@ function App() {
         {/* AI Advice */}
         <AIAdviceCard risk={crackRisk} field={selectedField} />
 
+        {/* Work log + AI Learning */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <WorkLogCard
+            fieldId={selectedFieldId}
+            fieldName={selectedField?.name ?? ''}
+            crackRiskScore={crackRisk?.score ?? 0}
+            todayWeather={today}
+          />
+          <AILearningCard logs={workLogs} />
+        </div>
+
         {/* Forecast table */}
         <ForecastTable forecast={correctedForecast} />
 
@@ -98,7 +114,8 @@ function App() {
       </main>
 
       <footer className="text-center text-xs text-gray-400 py-6 mt-4 border-t">
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.0
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.0 MVP<br />
+        広島県庄原市総領町中領家178
       </footer>
     </div>
   );
