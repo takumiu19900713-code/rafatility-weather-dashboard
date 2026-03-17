@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 
 export interface CorrectionParams {
   elevationLapseRate: number;     // ℃/100m (-0.6)
@@ -17,7 +17,7 @@ export interface CorrectionParams {
   };
 }
 
-const STORAGE_KEY = 'rafatility_correction_params';
+const STORAGE_KEY = 'rafatility_correction_params_v2';
 
 export const DEFAULT_PARAMS: CorrectionParams = {
   elevationLapseRate: -0.6,
@@ -36,26 +36,55 @@ export const DEFAULT_PARAMS: CorrectionParams = {
   },
 };
 
-function load(): CorrectionParams {
+function loadForField(fieldId: string): CorrectionParams {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return { ...DEFAULT_PARAMS, ...JSON.parse(saved) };
+    const all = localStorage.getItem(STORAGE_KEY);
+    if (all) {
+      const map = JSON.parse(all) as Record<string, CorrectionParams>;
+      if (map[fieldId]) return { ...DEFAULT_PARAMS, ...map[fieldId] };
+    }
   } catch {}
   return DEFAULT_PARAMS;
 }
 
-export function useCorrectionParams() {
-  const [params, setParams] = useState<CorrectionParams>(load);
+function saveForField(fieldId: string, params: CorrectionParams) {
+  try {
+    const all = localStorage.getItem(STORAGE_KEY);
+    const map = all ? (JSON.parse(all) as Record<string, CorrectionParams>) : {};
+    map[fieldId] = params;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+}
 
-  const updateParams = (next: CorrectionParams) => {
+function deleteForField(fieldId: string) {
+  try {
+    const all = localStorage.getItem(STORAGE_KEY);
+    if (!all) return;
+    const map = JSON.parse(all) as Record<string, CorrectionParams>;
+    delete map[fieldId];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
+  } catch {}
+}
+
+export function useCorrectionParams(fieldId: string) {
+  const [params, setParams] = useState<CorrectionParams>(() => loadForField(fieldId));
+  const [currentFieldId, setCurrentFieldId] = useState(fieldId);
+
+  // 圃場が切り替わったらパラメータを再ロード
+  if (fieldId !== currentFieldId) {
+    setCurrentFieldId(fieldId);
+    setParams(loadForField(fieldId));
+  }
+
+  const updateParams = useCallback((next: CorrectionParams) => {
     setParams(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-  };
+    saveForField(fieldId, next);
+  }, [fieldId]);
 
-  const resetParams = () => {
+  const resetParams = useCallback(() => {
     setParams(DEFAULT_PARAMS);
-    localStorage.removeItem(STORAGE_KEY);
-  };
+    deleteForField(fieldId);
+  }, [fieldId]);
 
   return { params, updateParams, resetParams };
 }

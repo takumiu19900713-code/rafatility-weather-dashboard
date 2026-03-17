@@ -24,12 +24,12 @@ function App() {
   const { fields, addField, deleteField } = useFields();
   const [selectedFieldId, setSelectedFieldId] = useState<string>(fields[0]?.id ?? 'F001');
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
-  const { params, updateParams, resetParams } = useCorrectionParams();
+  const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
 
-  const { forecast, past14, hourly, loading, error, lastUpdated, refetch } = useWeatherData(
+  const { forecast, past14, hourly, minutely, loading, error, lastUpdated, refetch } = useWeatherData(
     selectedField?.lat ?? fields[0]?.lat ?? 34.92,
     selectedField?.lon ?? fields[0]?.lon ?? 133.05,
     selectedFieldId
@@ -99,7 +99,7 @@ function App() {
         </div>
 
         {/* Rain nowcast */}
-        <RainNowcastCard hourly={hourly} />
+        <RainNowcastCard hourly={hourly} minutely={minutely} />
 
         {/* AI Advice */}
         <AIAdviceCard risk={crackRisk} field={selectedField} />
@@ -143,6 +143,7 @@ function App() {
         params={params}
         onSave={updateParams}
         onReset={resetParams}
+        fieldName={selectedField?.name}
       />
 
       <FieldRegistrationModal

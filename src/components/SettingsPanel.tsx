@@ -8,6 +8,7 @@ interface Props {
   params: CorrectionParams;
   onSave: (p: CorrectionParams) => void;
   onReset: () => void;
+  fieldName?: string;
 }
 
 function NumInput({
@@ -35,7 +36,7 @@ function NumInput({
   );
 }
 
-export const SettingsPanel: React.FC<Props> = ({ open, onClose, params, onSave, onReset }) => {
+export const SettingsPanel: React.FC<Props> = ({ open, onClose, params, onSave, onReset, fieldName }) => {
   const [draft, setDraft] = useState<CorrectionParams>(params);
 
   if (!open) return null;
@@ -63,7 +64,9 @@ export const SettingsPanel: React.FC<Props> = ({ open, onClose, params, onSave, 
         <div className="sticky top-0 bg-white border-b px-5 py-4 flex items-center justify-between">
           <div>
             <h2 className="font-bold text-gray-800">⚙️ AI補正パラメータ設定</h2>
-            <p className="text-xs text-gray-400">農研機構標準値をベースに調整可能です</p>
+            <p className="text-xs text-gray-400">
+              {fieldName ? `📍 ${fieldName} — ` : ''}農研機構標準値をベースに調整可能
+            </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
         </div>

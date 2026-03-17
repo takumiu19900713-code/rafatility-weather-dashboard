@@ -45,6 +45,15 @@ export interface CrackRisk {
   };
 }
 
+// 15分別ナウキャスト
+export interface MinutelyWeather {
+  time: string;
+  minuteOffset: number; // 現在時刻からの経過分
+  precipitation: number;
+  weatherCode: number;
+  temperature: number;
+}
+
 // 時間別天気
 export interface HourlyWeather {
   time: string;        // ISO datetime
