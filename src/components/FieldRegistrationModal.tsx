@@ -51,24 +51,27 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
     setGeocoding(true);
     setGeoError('');
     try {
-      // Step 1: Geocode address
-      const geoRes = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(address)}&count=1&language=ja&format=json`
+      // Step 1: Nominatim (OpenStreetMap) で日本語住所を検索
+      const nominatimRes = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1&accept-language=ja&countrycodes=jp`,
+        { headers: { 'Accept-Language': 'ja' } }
       );
-      const geoData = await geoRes.json();
-      if (!geoData.results?.length) throw new Error('住所が見つかりませんでした');
-      const r = geoData.results[0];
+      const nominatimData = await nominatimRes.json();
+      if (!nominatimData.length) throw new Error('住所が見つかりませんでした。もう少し広い範囲（市区町村名）で試してください。');
+      const r = nominatimData[0];
+      const lat = parseFloat(r.lat);
+      const lon = parseFloat(r.lon);
 
-      // Step 2: Fetch elevation
+      // Step 2: Open-Meteo Elevation APIで標高取得
       const elevRes = await fetch(
-        `https://api.open-meteo.com/v1/elevation?latitude=${r.latitude}&longitude=${r.longitude}`
+        `https://api.open-meteo.com/v1/elevation?latitude=${lat}&longitude=${lon}`
       );
       const elevData = await elevRes.json();
       const elevation = Math.round(elevData.elevation?.[0] ?? 0);
 
-      const locationName = [r.name, r.admin2, r.admin1].filter(Boolean).join(' ');
-      setGeoResult({ name: locationName, lat: r.latitude, lon: r.longitude, elevation });
-      setForm(f => ({ ...f, name: r.name }));
+      const locationName = r.display_name.split(',').slice(0, 3).join(' ').trim();
+      setGeoResult({ name: locationName, lat, lon, elevation });
+      setForm(f => ({ ...f, name: r.display_name.split(',')[0].trim() }));
       setStep('confirm');
     } catch (e) {
       setGeoError(e instanceof Error ? e.message : 'エラーが発生しました');
@@ -138,7 +141,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
                     value={address}
                     onChange={e => setAddress(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleGeocode()}
-                    placeholder="例: 広島県庄原市総領町"
+                    placeholder="例: 庄原市総領町、三次市、新潟市南区"
                     className="flex-1 border border-gray-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                   <button
@@ -154,7 +157,7 @@ export const FieldRegistrationModal: React.FC<Props> = ({ open, onClose, onSave 
 
               <div className="bg-blue-50 rounded-xl p-4 text-xs text-blue-700 space-y-1">
                 <p className="font-bold">🤖 自動取得される情報</p>
-                <p>✅ 緯度・経度 — Open-Meteo Geocoding API</p>
+                <p>✅ 緯度・経度 — OpenStreetMap Nominatim（日本語住所対応）</p>
                 <p>✅ 標高 — Open-Meteo Elevation API（国土地理院DEM準拠）</p>
                 <p>⚙️ 斜面方向 — 次のステップで選択（農研機構標準補正値を適用）</p>
               </div>
