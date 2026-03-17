@@ -1,28 +1,23 @@
 import type { Field, DailyWeather, CorrectedWeather } from '../types';
-
-const ASPECT_TEMP_CORRECTION: Record<string, number> = {
-  south: 0.8,
-  southwest: 0.6,
-  east: 0.3,
-  north: -0.5,
-  other: 0,
-};
-
-const ASPECT_PRECIP_CORRECTION: Record<string, number> = {
-  south: 1.0,
-  southwest: 1.05,
-  east: 1.0,
-  north: 1.0,
-  other: 1.03,
-};
+import type { CorrectionParams } from '../hooks/useCorrectionParams';
+import { DEFAULT_PARAMS } from '../hooks/useCorrectionParams';
 
 export function applyWeatherCorrection(
   weather: DailyWeather,
-  field: Field
+  field: Field,
+  params: CorrectionParams = DEFAULT_PARAMS
 ): CorrectedWeather {
-  const elevationCorrection = -((field.elevation - 0) / 100) * 0.6;
-  const aspectCorrection = ASPECT_TEMP_CORRECTION[field.aspect] ?? 0;
-  const precipCorrection = ASPECT_PRECIP_CORRECTION[field.aspect] ?? 1.0;
+  // 標高補正: (圃場標高 - 基準標高) / 100 * 気温減率
+  const elevationDiff = field.elevation - params.referenceElevation;
+  const elevationCorrection = (elevationDiff / 100) * params.elevationLapseRate;
+
+  // 斜面方向補正
+  const aspectCorrection = params.aspectTemp[field.aspect] ?? 0;
+
+  // 降水補正
+  const precipCorrection = field.aspect === 'southwest'
+    ? params.aspectPrecip.southwest
+    : params.aspectPrecip.other;
 
   return {
     ...weather,

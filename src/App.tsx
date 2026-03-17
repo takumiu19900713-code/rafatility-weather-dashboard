@@ -9,15 +9,19 @@ import { PrecipitationChart } from './components/PrecipitationChart';
 import { AIAdviceCard } from './components/AIAdviceCard';
 import { WorkLogCard } from './components/WorkLogCard';
 import { AILearningCard } from './components/AILearningCard';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
+import { useCorrectionParams } from './hooks/useCorrectionParams';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 import { FIELDS } from './data/fields';
 
 function App() {
   const [selectedFieldId, setSelectedFieldId] = useState<string>(FIELDS[0].id);
+  const { params, updateParams, resetParams } = useCorrectionParams();
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const selectedField = FIELDS.find((f) => f.id === selectedFieldId) ?? null;
 
@@ -27,7 +31,7 @@ function App() {
     selectedFieldId
   );
 
-  const correctedForecast = useWeatherCorrection(forecast, selectedField);
+  const correctedForecast = useWeatherCorrection(forecast, selectedField, params);
 
   const today = correctedForecast[0] ?? null;
 
@@ -42,8 +46,8 @@ function App() {
   // Also compute past14 corrected (already done via useWeatherCorrection)
   const correctedPast14Final = useMemo(() => {
     if (!selectedField || past14.length === 0) return [];
-    return past14.map((w) => applyWeatherCorrection(w, selectedField));
-  }, [past14, selectedField]);
+    return past14.map((w) => applyWeatherCorrection(w, selectedField, params));
+  }, [past14, selectedField, params]);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -113,10 +117,24 @@ function App() {
         )}
       </main>
 
-      <footer className="text-center text-xs text-gray-400 py-6 mt-4 border-t">
+      <footer className="text-center text-xs text-gray-400 py-6 mt-4 border-t relative">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="absolute left-4 bottom-6 flex items-center gap-1 text-xs text-gray-400 hover:text-primary transition-colors"
+        >
+          ⚙️ 補正パラメータ設定
+        </button>
         © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.0 MVP<br />
         広島県庄原市総領町中領家178
       </footer>
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        params={params}
+        onSave={updateParams}
+        onReset={resetParams}
+      />
     </div>
   );
 }
