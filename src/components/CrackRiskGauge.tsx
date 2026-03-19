@@ -1,8 +1,16 @@
 import React from 'react';
-import type { CrackRisk } from '../types';
+import type { CrackRisk, FruitStage } from '../types';
+
+const STAGE_LABEL: Record<FruitStage, string> = {
+  '開花前': '開花前 ×0.5',
+  '開花〜着果': '開花〜着果 ×1.0',
+  '肥大期': '肥大期 ×1.5',
+  '収穫期': '収穫期 ×1.2',
+};
 
 interface Props {
   risk: CrackRisk | null;
+  fruitStage?: FruitStage;
 }
 
 const LEVEL_CONFIG = {
@@ -11,7 +19,7 @@ const LEVEL_CONFIG = {
   high: { color: 'bg-red-500', textColor: 'text-red-700', bg: 'bg-red-50', border: 'border-red-200', label: '🔴 高リスク', icon: '🚨' },
 };
 
-export const CrackRiskGauge: React.FC<Props> = ({ risk }) => {
+export const CrackRiskGauge: React.FC<Props> = ({ risk, fruitStage }) => {
   if (!risk) return null;
 
   const config = LEVEL_CONFIG[risk.level];
@@ -20,7 +28,14 @@ export const CrackRiskGauge: React.FC<Props> = ({ risk }) => {
     <div className={`bg-white rounded-lg shadow p-4 border-l-4 ${risk.level === 'high' ? 'border-red-500' : risk.level === 'medium' ? 'border-yellow-400' : 'border-green-500'}`}>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-gray-600">🍇 裂果リスク</h2>
-        <span className="font-bold text-sm">{config.label}</span>
+        <div className="flex items-center gap-2">
+          {fruitStage && (
+            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+              {STAGE_LABEL[fruitStage]}
+            </span>
+          )}
+          <span className="font-bold text-sm">{config.label}</span>
+        </div>
       </div>
 
       {/* Gauge bar */}

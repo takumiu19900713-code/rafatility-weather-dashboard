@@ -1,3 +1,32 @@
+// 着果ステージ
+export type FruitStage = '開花前' | '開花〜着果' | '肥大期' | '収穫期';
+export const STAGE_COEFFICIENT: Record<FruitStage, number> = {
+  '開花前':     0.5,
+  '開花〜着果': 1.0,
+  '肥大期':     1.5,
+  '収穫期':     1.2,
+};
+
+// 生育フェーズ
+export type GrowthPhase = '冬季' | '春季' | '梅雨期' | '収穫期';
+
+// ユーザーロール
+export type UserRole = '従業員' | '管理者';
+
+// 出荷予測データ
+export interface ShipmentForecastData {
+  fieldName: string;
+  crop: string;
+  floweringDate: string;
+  elapsedDays: number;
+  accumulatedTemp: number;
+  standardDays: number;
+  predictedShipDate: string;
+  confidenceRange: string;
+  precip7days: number;
+  crackRiskHistory: { date: string; score: number }[];
+}
+
 export interface Field {
   id: string;
   name: string;

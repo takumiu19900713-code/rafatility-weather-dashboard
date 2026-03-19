@@ -13,12 +13,16 @@ import { RainNowcastCard } from './components/RainNowcastCard';
 import { KnowledgeCard } from './components/KnowledgeCard';
 import { SettingsPanel } from './components/SettingsPanel';
 import { FieldRegistrationModal } from './components/FieldRegistrationModal';
+import { GrowthPhaseBar } from './components/GrowthPhaseBar';
+import { ShipmentForecastCard } from './components/ShipmentForecastCard';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
 import { useCorrectionParams } from './hooks/useCorrectionParams';
 import { useFields } from './hooks/useFields';
 import { useKnowledge } from './hooks/useKnowledge';
+import { useGrowthPhase } from './hooks/useGrowthPhase';
+import { useUserRole } from './hooks/useUserRole';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 
@@ -29,6 +33,11 @@ function App() {
   const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { rules, addRule, toggleRule, deleteRule } = useKnowledge();
+  const { role, isAdmin, setRole } = useUserRole();
+  const {
+    phase, fruitStage, floweringDate,
+    setPhase, setFruitStage, setFloweringDate,
+  } = useGrowthPhase(selectedFieldId);
 
   const selectedField = fields.find((f) => f.id === selectedFieldId) ?? null;
 
@@ -39,7 +48,6 @@ function App() {
   );
 
   const correctedForecast = useWeatherCorrection(forecast, selectedField, params);
-
   const today = correctedForecast[0] ?? null;
 
   const crackRisk = useMemo(() => {
@@ -51,8 +59,9 @@ function App() {
       fieldId: selectedFieldId,
       knowledgeRules: rules,
       humidityMax: today?.humidityMax ?? 0,
+      fruitStage,
     });
-  }, [correctedForecast, past14, selectedField, selectedFieldId, rules, today]);
+  }, [correctedForecast, past14, selectedField, selectedFieldId, rules, today, fruitStage]);
 
   const { logs: workLogs } = useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
 
@@ -60,6 +69,11 @@ function App() {
     if (!selectedField || past14.length === 0) return [];
     return past14.map((w) => applyWeatherCorrection(w, selectedField, params));
   }, [past14, selectedField, params]);
+
+  // 春季の霜アラート（7日以内に最低気温3℃以下）
+  const frostAlertDay = phase === '春季'
+    ? correctedForecast.slice(0, 7).find((d) => d.correctedTempMin <= 3)
+    : null;
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -69,6 +83,15 @@ function App() {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
             ⚠️ {error} (キャッシュデータを表示中)
+          </div>
+        )}
+
+        {/* 春季：霜アラート */}
+        {frostAlertDay && (
+          <div className="bg-blue-50 border border-blue-300 text-blue-800 rounded-xl p-3 text-sm font-medium">
+            🌡️ 霜注意アラート：{frostAlertDay.date} の最低気温{' '}
+            <strong>{frostAlertDay.correctedTempMin.toFixed(1)}℃</strong> の予報。
+            新芽・花芽への凍霜害に注意してください。
           </div>
         )}
 
@@ -82,28 +105,47 @@ function App() {
           onUpdateRoofType={(id, roofType) => updateField(id, { roofType })}
         />
 
+        {/* 生育フェーズ・着果ステージ */}
+        <GrowthPhaseBar
+          phase={phase}
+          fruitStage={fruitStage}
+          floweringDate={floweringDate}
+          role={role}
+          onPhaseChange={setPhase}
+          onStageChange={setFruitStage}
+          onFloweringDateChange={setFloweringDate}
+        />
+
         {/* Main grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="md:col-span-1 lg:col-span-1">
-            <FieldMap
-              fields={fields}
-              selectedField={selectedField}
-              onSelectField={setSelectedFieldId}
-            />
+            <FieldMap fields={fields} selectedField={selectedField} onSelectField={setSelectedFieldId} />
           </div>
           <div className="md:col-span-1 lg:col-span-1">
-            <WeatherSummaryCard
-              today={today}
-              fieldName={selectedField?.name ?? ''}
-            />
+            <WeatherSummaryCard today={today} fieldName={selectedField?.name ?? ''} />
           </div>
           <div className="md:col-span-2 lg:col-span-1">
-            <CrackRiskGauge risk={crackRisk} />
+            <CrackRiskGauge risk={crackRisk} fruitStage={fruitStage} />
           </div>
         </div>
 
-        {/* Rain nowcast */}
-        <RainNowcastCard hourly={hourly} minutely={minutely} />
+        {/* 雨ナウキャスト（冬季以外） */}
+        {phase !== '冬季' && (
+          <RainNowcastCard hourly={hourly} minutely={minutely} />
+        )}
+
+        {/* 出荷予測（収穫期のみ） */}
+        {phase === '収穫期' && (
+          <ShipmentForecastCard
+            fieldName={selectedField?.name ?? ''}
+            crop={selectedField?.crop ?? ''}
+            floweringDate={floweringDate}
+            past14={past14}
+            forecast={correctedForecast}
+            crackRiskScore={crackRisk?.score ?? 0}
+            role={role}
+          />
+        )}
 
         {/* AI Advice */}
         <AIAdviceCard risk={crackRisk} field={selectedField} />
@@ -119,14 +161,14 @@ function App() {
           <AILearningCard logs={workLogs} />
         </div>
 
-        {/* 農家ナレッジルール */}
+        {/* 農家ナレッジルール（管理者のみ追加・編集） */}
         <KnowledgeCard
           fieldId={selectedFieldId}
           fieldName={selectedField?.name ?? ''}
           rules={rules}
-          onAdd={addRule}
-          onToggle={toggleRule}
-          onDelete={deleteRule}
+          onAdd={isAdmin ? addRule : undefined}
+          onToggle={isAdmin ? toggleRule : undefined}
+          onDelete={isAdmin ? deleteRule : undefined}
         />
 
         {/* Forecast table */}
@@ -141,13 +183,25 @@ function App() {
       </main>
 
       <footer className="text-center text-xs text-gray-400 py-6 mt-4 border-t relative">
+        {isAdmin && (
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="absolute left-4 bottom-6 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 transition-colors"
+          >
+            ⚙️ 補正パラメータ設定
+          </button>
+        )}
         <button
-          onClick={() => setSettingsOpen(true)}
-          className="absolute left-4 bottom-6 flex items-center gap-1 text-xs text-gray-400 hover:text-primary transition-colors"
+          onClick={() => setRole(isAdmin ? '従業員' : '管理者')}
+          className={`absolute right-4 bottom-6 flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors
+            ${isAdmin
+              ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
+              : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+            }`}
         >
-          ⚙️ 補正パラメータ設定
+          {isAdmin ? '🔑 管理者' : '👤 従業員'}
         </button>
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.0 MVP<br />
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.1<br />
         広島県庄原市総領町中領家178
       </footer>
 

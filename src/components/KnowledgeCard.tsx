@@ -5,9 +5,9 @@ interface Props {
   fieldId: string;
   fieldName: string;
   rules: KnowledgeRule[];
-  onAdd: (rule: Omit<KnowledgeRule, 'id' | 'createdAt'>) => void;
-  onToggle: (id: string) => void;
-  onDelete: (id: string) => void;
+  onAdd?: (rule: Omit<KnowledgeRule, 'id' | 'createdAt'>) => void;
+  onToggle?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const EMPTY_FORM = {
@@ -29,7 +29,7 @@ export const KnowledgeCard: React.FC<Props> = ({ fieldId, fieldName, rules, onAd
 
   const handleAdd = () => {
     if (!form.title.trim()) return;
-    onAdd({
+    onAdd?.({
       fieldId: form.fieldScope === 'all' ? 'all' : fieldId,
       title: form.title.trim(),
       note: form.note.trim(),
@@ -256,13 +256,13 @@ export const KnowledgeCard: React.FC<Props> = ({ fieldId, fieldName, rules, onAd
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                   <button
-                    onClick={() => onToggle(rule.id)}
+                    onClick={() => onToggle?.(rule.id)}
                     className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-600 hover:bg-gray-100"
                   >
                     {rule.active ? 'OFF' : 'ON'}
                   </button>
                   <button
-                    onClick={() => onDelete(rule.id)}
+                    onClick={() => onDelete?.(rule.id)}
                     className="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50"
                   >
                     削除

@@ -1,4 +1,5 @@
-import type { CrackRisk, DailyWeather, KnowledgeRule } from '../types';
+import type { CrackRisk, DailyWeather, FruitStage, KnowledgeRule } from '../types';
+import { STAGE_COEFFICIENT } from '../types';
 
 function countConsecutive(arr: number[], predicate: (v: number) => boolean): number {
   let max = 0;
@@ -64,6 +65,7 @@ export function calcCrackRisk(
     fieldId?: string;
     knowledgeRules?: KnowledgeRule[];
     humidityMax?: number;
+    fruitStage?: FruitStage;
   }
 ): CrackRisk {
   const roofType = options?.roofType ?? 'open';
@@ -71,6 +73,8 @@ export function calcCrackRisk(
   const fieldId = options?.fieldId ?? '';
   const knowledgeRules = options?.knowledgeRules ?? [];
   const humidityMax = options?.humidityMax ?? 0;
+  const fruitStage = options?.fruitStage;
+  const stageCoeff = fruitStage ? STAGE_COEFFICIENT[fruitStage] : 1.0;
 
   const totalPrecip = precipData7days.reduce((a, b) => a + b, 0);
   const maxDailyPrecip = Math.max(...precipData7days, 0);
@@ -84,6 +88,9 @@ export function calcCrackRisk(
   score += Math.min((totalPrecip / 50) * 40, 40) * (roofType === 'open' ? 1.0 : 0.5);
   score += Math.min((maxDailyPrecip / 30) * 35, 35) * roofFactor;
   score += Math.min((consecutiveRainDays / 5) * 25, 25);
+
+  // 着果ステージ係数を基本スコアに適用
+  score = score * stageCoeff;
 
   // 乾燥後急雨ボーナス（past14から直前の連続晴天日数を算出）
   const dryDaysBefore = past14.length > 0 ? calcDryDaysBefore(past14) : 0;
