@@ -11,12 +11,6 @@ const STAGE_COLOR: Record<FruitStage, string> = {
   '肥大期':     'bg-red-100 text-red-700 border-red-300',
   '収穫期':     'bg-green-100 text-green-700 border-green-300',
 };
-const STAGE_COEFF_LABEL: Record<FruitStage, string> = {
-  '開花前':     '×0.5',
-  '開花〜着果': '×1.0',
-  '肥大期':     '×1.5',
-  '収穫期':     '×1.2',
-};
 
 interface Props {
   phase: GrowthPhase;
@@ -62,17 +56,17 @@ export function GrowthPhaseBar({
         </div>
       </div>
 
-      {/* 着果ステージ + 開花日入力 */}
+      {/* 生育ステージ + 開花日入力 */}
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-gray-500 mb-1.5 font-medium">🍇 着果ステージ（裂果リスク係数）</p>
+          <p className="text-xs text-gray-500 mb-1.5 font-medium">🍇 生育ステージ</p>
           <div className="flex gap-2 flex-wrap">
             {STAGES.map((s) => (
               <button
                 key={s}
                 onClick={() => isAdmin && onStageChange(s)}
                 disabled={!isAdmin}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition-all
+                className={`px-3 py-1 rounded-lg text-xs font-medium border transition-all
                   ${fruitStage === s
                     ? `${STAGE_COLOR[s]} shadow-sm ring-1 ring-current`
                     : isAdmin
@@ -81,7 +75,6 @@ export function GrowthPhaseBar({
                   }`}
               >
                 {s}
-                <span className="ml-1 font-bold">{STAGE_COEFF_LABEL[s]}</span>
               </button>
             ))}
           </div>

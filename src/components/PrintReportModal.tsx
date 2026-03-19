@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { CorrectedWeather, CrackRisk, DailyWeather } from '../types';
+import type { CorrectedWeather, DailyWeather } from '../types';
 import type { HistoricalDay } from '../hooks/useHistoricalWeather';
 
 const VARIETY_GDD_TARGET: Record<string, number> = {
@@ -61,13 +61,12 @@ interface Props {
   past14: DailyWeather[];
   forecast: CorrectedWeather[];
   lastYearData: HistoricalDay[];
-  crackRisk: CrackRisk | null;
 }
 
 export function PrintReportModal({
   open, onClose,
   fieldName, location, crop, floweringDate,
-  past14, forecast, lastYearData, crackRisk,
+  past14, forecast, lastYearData,
 }: Props) {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -80,28 +79,30 @@ export function PrintReportModal({
   const today = new Date().toLocaleDateString('ja-JP', { year: 'numeric', month: 'long', day: 'numeric' });
   const year = new Date().getFullYear();
   const gddTarget = VARIETY_GDD_TARGET[crop] ?? 1000;
-  const thisYearGdd = calcGddSeries(floweringDate, [
+
+  const thisYearGdd = floweringDate ? calcGddSeries(floweringDate, [
     ...past14,
     ...forecast.map((d) => ({ date: d.date, tempMax: d.correctedTempMax, tempMin: d.correctedTempMin })),
-  ]);
+  ]) : 0;
+
   const lastYearGdd = floweringDate
     ? calcGddSeries(shiftDate(floweringDate, -1), lastYearData)
     : 0;
+
   const predictedShip = floweringDate
     ? predictShipDate(floweringDate, gddTarget, past14, forecast)
     : '—';
 
-  // 過去30日の降水量サマリー
-  const precip30 = past14.reduce((s, d) => s + d.precipitation, 0);
-  const precip7forecast = forecast.slice(0, 7).reduce((s, d) => s + (d as CorrectedWeather).correctedPrecipitation, 0);
-
-  const handlePrint = () => {
-    window.print();
-  };
+  // 気温サマリー（過去14日）
+  const avgTempMax = past14.length
+    ? Math.round(past14.reduce((s, d) => s + d.tempMax, 0) / past14.length * 10) / 10
+    : 0;
+  const avgTempMin = past14.length
+    ? Math.round(past14.reduce((s, d) => s + d.tempMin, 0) / past14.length * 10) / 10
+    : 0;
 
   return (
     <>
-      {/* 印刷時のスタイル */}
       <style>{`
         @media print {
           body > * { display: none !important; }
@@ -117,12 +118,12 @@ export function PrintReportModal({
         onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       >
         <div className="print-content bg-white rounded-xl shadow-2xl w-full max-w-3xl my-4">
-          {/* 操作ボタン（印刷時非表示） */}
+          {/* 操作ボタン */}
           <div className="no-print flex items-center justify-between px-6 py-3 border-b border-gray-200">
-            <span className="text-sm text-gray-500">印刷プレビュー（PDF出力）</span>
+            <span className="text-sm text-gray-500">出荷予測レポート（PDF出力）</span>
             <div className="flex gap-2">
               <button
-                onClick={handlePrint}
+                onClick={() => window.print()}
                 className="bg-green-600 text-white text-sm px-4 py-1.5 rounded-lg hover:bg-green-700"
               >
                 🖨️ PDF印刷
@@ -139,19 +140,17 @@ export function PrintReportModal({
           {/* レポート本体 */}
           <div className="p-8 text-gray-800">
             {/* ヘッダー */}
-            <div className="text-center border-b-2 border-green-600 pb-4 mb-6">
-              <p className="text-xs text-gray-500 mb-1">株式会社ラファティリティ</p>
-              <h1 className="text-xl font-bold text-gray-900">
-                {year}年産 ぶどう生育記録・出荷予測レポート
+            <div className="text-center border-b-2 border-green-600 pb-5 mb-7">
+              <p className="text-xs text-gray-500 mb-1 tracking-widest">株式会社ラファティリティ</p>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {year}年産 ぶどう出荷予測レポート
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {fieldName}｜{location}
-              </p>
+              <p className="text-sm text-gray-600 mt-1">{fieldName}｜{location}</p>
               <p className="text-xs text-gray-400 mt-1">作成日: {today}</p>
             </div>
 
-            {/* 基本情報 */}
-            <section className="mb-6">
+            {/* 圃場・品種情報 */}
+            <section className="mb-7">
               <h2 className="text-sm font-bold text-green-700 border-l-4 border-green-500 pl-2 mb-3">
                 1. 圃場・品種情報
               </h2>
@@ -165,8 +164,8 @@ export function PrintReportModal({
                     ['積算温度目標（基準温度10℃）', `${gddTarget}℃・日`],
                   ].map(([label, value]) => (
                     <tr key={label} className="border-b border-gray-100">
-                      <td className="py-1.5 pr-4 text-gray-500 w-48">{label}</td>
-                      <td className="py-1.5 font-medium">{value}</td>
+                      <td className="py-2 pr-4 text-gray-500 w-52">{label}</td>
+                      <td className="py-2 font-medium">{value}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -174,106 +173,77 @@ export function PrintReportModal({
             </section>
 
             {/* 出荷予測 */}
-            <section className="mb-6">
+            <section className="mb-7">
               <h2 className="text-sm font-bold text-green-700 border-l-4 border-green-500 pl-2 mb-3">
-                2. 出荷予測日（積算温度根拠）
+                2. 出荷予測日
               </h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
                   <p className="text-xs text-blue-600 font-medium">{year}年 予測出荷日</p>
-                  <p className="text-2xl font-bold text-blue-800 mt-1">{predictedShip}</p>
-                  <p className="text-xs text-blue-500 mt-1">信頼区間: ±3日</p>
+                  <p className="text-3xl font-bold text-blue-800 mt-2">{predictedShip}</p>
+                  <p className="text-xs text-blue-500 mt-2">信頼区間: ±3日</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                   <p className="text-xs text-gray-500 font-medium">{year - 1}年 参考積算温度</p>
-                  <p className="text-2xl font-bold text-gray-700 mt-1">{lastYearGdd}℃日</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    {lastYearData.length > 0 ? 'アーカイブデータより' : 'データ未取得'}
+                  <p className="text-3xl font-bold text-gray-700 mt-2">
+                    {lastYearGdd > 0 ? `${lastYearGdd}℃日` : '—'}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-2">
+                    {lastYearData.length > 0 ? '気象アーカイブより' : 'データ未取得'}
                   </p>
                 </div>
               </div>
             </section>
 
-            {/* 積算温度比較表 */}
-            <section className="mb-6">
+            {/* 積算温度比較 */}
+            <section className="mb-7">
               <h2 className="text-sm font-bold text-green-700 border-l-4 border-green-500 pl-2 mb-3">
-                3. 積算温度 今年 vs 昨年 比較
+                3. 積算温度比較（今年 vs 昨年）
               </h2>
               <table className="w-full text-sm border border-gray-200 rounded-lg overflow-hidden">
                 <thead className="bg-green-50">
                   <tr>
-                    <th className="text-left py-2 px-3 font-medium text-gray-600">項目</th>
-                    <th className="text-center py-2 px-3 font-medium text-blue-700">{year}年（今年）</th>
-                    <th className="text-center py-2 px-3 font-medium text-gray-500">{year - 1}年（昨年）</th>
-                    <th className="text-center py-2 px-3 font-medium text-gray-600">目標値</th>
+                    <th className="text-left py-2.5 px-4 font-medium text-gray-600">項目</th>
+                    <th className="text-center py-2.5 px-4 font-medium text-blue-700">{year}年（今年）</th>
+                    <th className="text-center py-2.5 px-4 font-medium text-gray-500">{year - 1}年（昨年）</th>
+                    <th className="text-center py-2.5 px-4 font-medium text-red-600">目標値</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-t border-gray-100">
-                    <td className="py-2 px-3 text-gray-600">現在の積算温度</td>
-                    <td className="py-2 px-3 text-center font-bold text-blue-700">{thisYearGdd}℃日</td>
-                    <td className="py-2 px-3 text-center text-gray-500">{lastYearGdd > 0 ? `${lastYearGdd}℃日` : '—'}</td>
-                    <td className="py-2 px-3 text-center text-red-600 font-medium">{gddTarget}℃日</td>
-                  </tr>
-                  <tr className="border-t border-gray-100 bg-gray-50">
-                    <td className="py-2 px-3 text-gray-600">目標まで</td>
-                    <td className="py-2 px-3 text-center font-bold text-blue-700">
-                      {Math.max(0, gddTarget - thisYearGdd)}℃日
-                    </td>
-                    <td className="py-2 px-3 text-center text-gray-500">
-                      {lastYearGdd > 0 ? `${Math.max(0, gddTarget - lastYearGdd)}℃日` : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-center">—</td>
-                  </tr>
-                  <tr className="border-t border-gray-100">
-                    <td className="py-2 px-3 text-gray-600">達成率</td>
-                    <td className="py-2 px-3 text-center font-bold text-blue-700">
-                      {Math.min(100, Math.round((thisYearGdd / gddTarget) * 100))}%
-                    </td>
-                    <td className="py-2 px-3 text-center text-gray-500">
-                      {lastYearGdd > 0 ? `${Math.min(100, Math.round((lastYearGdd / gddTarget) * 100))}%` : '—'}
-                    </td>
-                    <td className="py-2 px-3 text-center text-red-600 font-medium">100%</td>
-                  </tr>
+                  {[
+                    ['現在の積算温度', `${thisYearGdd}℃日`, lastYearGdd > 0 ? `${lastYearGdd}℃日` : '—', `${gddTarget}℃日`],
+                    ['残り積算温度', `${Math.max(0, gddTarget - thisYearGdd)}℃日`, lastYearGdd > 0 ? `${Math.max(0, gddTarget - lastYearGdd)}℃日` : '—', '—'],
+                    ['達成率', `${Math.min(100, Math.round(thisYearGdd / gddTarget * 100))}%`, lastYearGdd > 0 ? `${Math.min(100, Math.round(lastYearGdd / gddTarget * 100))}%` : '—', '100%'],
+                  ].map(([label, a, b, target], i) => (
+                    <tr key={label} className={`border-t border-gray-100 ${i % 2 === 1 ? 'bg-gray-50' : ''}`}>
+                      <td className="py-2.5 px-4 text-gray-600">{label}</td>
+                      <td className="py-2.5 px-4 text-center font-bold text-blue-700">{a}</td>
+                      <td className="py-2.5 px-4 text-center text-gray-500">{b}</td>
+                      <td className="py-2.5 px-4 text-center text-red-600 font-medium">{target}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
               <p className="text-xs text-gray-400 mt-2">
-                ※ 積算温度 = Σ max(0, 日平均気温 − 10℃)。開花日からの累積値。予報値を含む。
+                ※ 積算温度 = Σ max(0, 日平均気温 − 10℃)。開花日からの累積値。直近7日の予報値を含む。
               </p>
             </section>
 
-            {/* 気象・リスク概要 */}
-            <section className="mb-6">
+            {/* 気温概要 */}
+            <section className="mb-7">
               <h2 className="text-sm font-bold text-green-700 border-l-4 border-green-500 pl-2 mb-3">
-                4. 気象概要・裂果リスク
+                4. 最近14日間の気温概要
               </h2>
-              <div className="grid grid-cols-3 gap-3 mb-3">
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
-                  <p className="text-xs text-gray-500">過去14日間降水量</p>
-                  <p className="text-xl font-bold text-gray-800">{Math.round(precip30 * 10) / 10}mm</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-orange-50 rounded-lg p-3 border border-orange-100 text-center">
+                  <p className="text-xs text-orange-600">平均最高気温</p>
+                  <p className="text-2xl font-bold text-orange-700 mt-1">{avgTempMax}℃</p>
                 </div>
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-center">
-                  <p className="text-xs text-gray-500">今後7日間降水予報</p>
-                  <p className="text-xl font-bold text-gray-800">{Math.round(precip7forecast * 10) / 10}mm</p>
-                </div>
-                <div className={`rounded-lg p-3 border text-center ${
-                  crackRisk?.level === 'high' ? 'bg-red-50 border-red-200' :
-                  crackRisk?.level === 'medium' ? 'bg-yellow-50 border-yellow-200' :
-                  'bg-green-50 border-green-200'
-                }`}>
-                  <p className="text-xs text-gray-500">裂果リスクスコア</p>
-                  <p className={`text-xl font-bold ${
-                    crackRisk?.level === 'high' ? 'text-red-700' :
-                    crackRisk?.level === 'medium' ? 'text-yellow-700' :
-                    'text-green-700'
-                  }`}>{crackRisk?.score ?? 0}点</p>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 text-center">
+                  <p className="text-xs text-blue-600">平均最低気温</p>
+                  <p className="text-2xl font-bold text-blue-700 mt-1">{avgTempMin}℃</p>
                 </div>
               </div>
-              {crackRisk && (
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-sm text-gray-700">
-                  <strong>AI判断:</strong> {crackRisk.advice}
-                </div>
-              )}
             </section>
 
             {/* フッター */}

@@ -7,8 +7,6 @@ import { CrackRiskGauge } from './components/CrackRiskGauge';
 import { ForecastTable } from './components/ForecastTable';
 import { PrecipitationChart } from './components/PrecipitationChart';
 import { AIAdviceCard } from './components/AIAdviceCard';
-import { WorkLogCard } from './components/WorkLogCard';
-import { AILearningCard } from './components/AILearningCard';
 import { RainNowcastCard } from './components/RainNowcastCard';
 import { KnowledgeCard } from './components/KnowledgeCard';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -51,7 +49,7 @@ function App() {
     selectedFieldId
   );
 
-  // 昨年度の気温アーカイブ（収穫期・梅雨期のみ取得）
+  // 昨年度の気温アーカイブ（梅雨期・収穫期のみ取得）
   const shouldFetchHistory = (phase === '収穫期' || phase === '梅雨期') && !!floweringDate;
   const { data: lastYearData, loading: lastYearLoading } = useHistoricalWeather(
     shouldFetchHistory ? (selectedField?.lat ?? 34.92) : 0,
@@ -75,17 +73,21 @@ function App() {
     });
   }, [correctedForecast, past14, selectedField, selectedFieldId, rules, today, fruitStage]);
 
-  const { logs: workLogs } = useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
+  // 作業記録は裏でkeep（Excelエクスポート用）
+  useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
 
   const correctedPast14Final = useMemo(() => {
     if (!selectedField || past14.length === 0) return [];
     return past14.map((w) => applyWeatherCorrection(w, selectedField, params));
   }, [past14, selectedField, params]);
 
-  // 春季の霜アラート
+  // 春季：霜アラート
   const frostAlertDay = phase === '春季'
     ? correctedForecast.slice(0, 7).find((d) => d.correctedTempMin <= 3)
     : null;
+
+  // 裂果リスクは肥大期のみ表示
+  const showCrackRisk = fruitStage === '肥大期';
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -117,7 +119,7 @@ function App() {
           onUpdateRoofType={(id, roofType) => updateField(id, { roofType })}
         />
 
-        {/* 生育フェーズ・着果ステージ */}
+        {/* 生育フェーズ・生育ステージ */}
         <GrowthPhaseBar
           phase={phase}
           fruitStage={fruitStage}
@@ -129,16 +131,19 @@ function App() {
         />
 
         {/* Main grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="md:col-span-1 lg:col-span-1">
+        <div className={`grid grid-cols-1 gap-4 ${showCrackRisk ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-2'}`}>
+          <div>
             <FieldMap fields={fields} selectedField={selectedField} onSelectField={setSelectedFieldId} />
           </div>
-          <div className="md:col-span-1 lg:col-span-1">
+          <div>
             <WeatherSummaryCard today={today} fieldName={selectedField?.name ?? ''} />
           </div>
-          <div className="md:col-span-2 lg:col-span-1">
-            <CrackRiskGauge risk={crackRisk} fruitStage={fruitStage} />
-          </div>
+          {/* 裂果リスクは肥大期のみ */}
+          {showCrackRisk && (
+            <div className="md:col-span-2 lg:col-span-1">
+              <CrackRiskGauge risk={crackRisk} fruitStage={fruitStage} />
+            </div>
+          )}
         </div>
 
         {/* 雨ナウキャスト（冬季以外） */}
@@ -172,13 +177,13 @@ function App() {
           />
         )}
 
-        {/* 製菓会社向けレポート出力ボタン（管理者・収穫期または梅雨期） */}
+        {/* PDF出力ボタン（管理者・梅雨期または収穫期） */}
         {isAdmin && (phase === '収穫期' || phase === '梅雨期') && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
             <div>
-              <p className="font-bold text-gray-700 text-sm">📄 出荷予測レポート（製菓会社提出用）</p>
+              <p className="font-bold text-gray-700 text-sm">📄 出荷予測レポート（青果会社・製菓会社提出用）</p>
               <p className="text-xs text-gray-500 mt-0.5">
-                積算温度・出荷予測日・裂果リスク履歴をPDFで出力します
+                積算温度・出荷予測日・昨年比較をPDFで出力します
               </p>
             </div>
             <button
@@ -190,19 +195,10 @@ function App() {
           </div>
         )}
 
-        {/* AI Advice */}
-        <AIAdviceCard risk={crackRisk} field={selectedField} />
-
-        {/* Work log + AI Learning */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <WorkLogCard
-            fieldId={selectedFieldId}
-            fieldName={selectedField?.name ?? ''}
-            crackRiskScore={crackRisk?.score ?? 0}
-            todayWeather={today}
-          />
-          <AILearningCard logs={workLogs} />
-        </div>
+        {/* AI Advice（肥大期のみ） */}
+        {showCrackRisk && (
+          <AIAdviceCard risk={crackRisk} field={selectedField} />
+        )}
 
         {/* 農家ナレッジルール */}
         <KnowledgeCard
@@ -244,7 +240,7 @@ function App() {
         >
           {isAdmin ? '🔑 管理者' : '👤 従業員'}
         </button>
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.2<br />
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.3<br />
         広島県庄原市総領町中領家178
       </footer>
 
@@ -266,7 +262,6 @@ function App() {
         }}
       />
 
-      {/* 製菓会社向けPDFレポート */}
       <PrintReportModal
         open={printReportOpen}
         onClose={() => setPrintReportOpen(false)}
@@ -277,7 +272,6 @@ function App() {
         past14={past14}
         forecast={correctedForecast}
         lastYearData={lastYearData}
-        crackRisk={crackRisk}
       />
     </div>
   );

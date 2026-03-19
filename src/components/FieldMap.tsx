@@ -1,16 +1,5 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle } from 'react-leaflet';
-import { Icon } from 'leaflet';
-import 'leaflet/dist/leaflet.css';
 import type { Field } from '../types';
-
-// Fix default marker icon
-delete (Icon.Default.prototype as any)._getIconUrl;
-Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
 
 interface Props {
   fields: Field[];
@@ -18,49 +7,54 @@ interface Props {
   onSelectField: (id: string) => void;
 }
 
-export const FieldMap: React.FC<Props> = ({ fields, selectedField, onSelectField }) => {
-  const center: [number, number] = selectedField
-    ? [selectedField.lat, selectedField.lon]
-    : [34.9, 133.04];
+export const FieldMap: React.FC<Props> = ({ fields, selectedField }) => {
+  const field = selectedField ?? fields[0];
+  if (!field) return null;
+
+  // Google Maps embed（APIキー不要）
+  const embedUrl = `https://maps.google.com/maps?q=${field.lat},${field.lon}&z=15&output=embed&hl=ja`;
+  const mapsUrl = `https://www.google.com/maps?q=${field.lat},${field.lon}&z=15`;
 
   return (
     <div className="bg-white rounded-lg shadow overflow-hidden">
-      <div className="px-4 py-3 border-b">
+      <div className="px-4 py-3 border-b flex items-center justify-between">
         <h2 className="text-sm font-bold text-gray-600">📍 圃場マップ</h2>
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs text-blue-600 hover:underline"
+        >
+          Googleマップで開く ↗
+        </a>
       </div>
-      <MapContainer
-        center={center}
-        zoom={12}
-        style={{ height: '280px', width: '100%' }}
-        key={selectedField?.id}
-      >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+      {/* 圃場リスト（簡易） */}
+      <div className="flex gap-1.5 px-3 py-2 overflow-x-auto border-b bg-gray-50">
         {fields.map((f) => (
-          <Marker
+          <span
             key={f.id}
-            position={[f.lat, f.lon]}
-            eventHandlers={{ click: () => onSelectField(f.id) }}
+            className={`text-xs px-2 py-0.5 rounded-full border whitespace-nowrap ${
+              f.id === field.id
+                ? 'bg-green-600 text-white border-green-600'
+                : 'bg-white text-gray-500 border-gray-200'
+            }`}
           >
-            <Popup>
-              <div className="text-sm">
-                <strong>{f.name}</strong><br />
-                標高: {f.elevation}m | 斜面: {f.aspect}<br />
-                {f.location}
-              </div>
-            </Popup>
-          </Marker>
+            📌 {f.name}
+          </span>
         ))}
-        {selectedField && (
-          <Circle
-            center={[selectedField.lat, selectedField.lon]}
-            radius={300}
-            pathOptions={{ color: '#2e7d32', fillColor: '#66bb6a', fillOpacity: 0.2 }}
-          />
-        )}
-      </MapContainer>
+      </div>
+      <iframe
+        src={embedUrl}
+        width="100%"
+        height="240"
+        style={{ border: 0 }}
+        loading="lazy"
+        referrerPolicy="no-referrer-when-downgrade"
+        title={`${field.name}の地図`}
+      />
+      <div className="px-4 py-2 bg-gray-50 text-xs text-gray-500 border-t">
+        {field.name}｜標高 {field.elevation}m｜{field.location}
+      </div>
     </div>
   );
 };
