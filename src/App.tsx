@@ -15,6 +15,7 @@ import { GrowthPhaseBar } from './components/GrowthPhaseBar';
 import { ShipmentForecastCard } from './components/ShipmentForecastCard';
 import { AccumulatedTempCard } from './components/AccumulatedTempCard';
 import { PrintReportModal } from './components/PrintReportModal';
+import { IrrigationAdviceCard } from './components/IrrigationAdviceCard';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
@@ -86,8 +87,10 @@ function App() {
     ? correctedForecast.slice(0, 7).find((d) => d.correctedTempMin <= 3)
     : null;
 
-  // 裂果リスクは肥大期のみ表示
-  const showCrackRisk = fruitStage === '肥大期';
+  // 裂果リスクは肥大期 or 梅雨期フェーズで表示
+  const showCrackRisk = fruitStage === '肥大期' || phase === '梅雨期';
+  // 散水管理カードは梅雨期・収穫期で表示
+  const showIrrigation = phase === '梅雨期' || phase === '収穫期';
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -195,7 +198,19 @@ function App() {
           </div>
         )}
 
-        {/* AI Advice（肥大期のみ） */}
+        {/* 散水管理アドバイス（梅雨期・収穫期） */}
+        {showIrrigation && (
+          <IrrigationAdviceCard
+            lat={selectedField?.lat ?? 34.92}
+            past14={past14}
+            forecast={correctedForecast}
+            fruitStage={fruitStage}
+            roofType={selectedField?.roofType ?? 'open'}
+            fieldName={selectedField?.name ?? ''}
+          />
+        )}
+
+        {/* AI Advice（肥大期 or 梅雨期） */}
         {showCrackRisk && (
           <AIAdviceCard risk={crackRisk} field={selectedField} />
         )}
