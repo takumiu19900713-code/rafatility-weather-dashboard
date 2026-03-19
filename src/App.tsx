@@ -15,6 +15,8 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { FieldRegistrationModal } from './components/FieldRegistrationModal';
 import { GrowthPhaseBar } from './components/GrowthPhaseBar';
 import { ShipmentForecastCard } from './components/ShipmentForecastCard';
+import { AccumulatedTempCard } from './components/AccumulatedTempCard';
+import { PrintReportModal } from './components/PrintReportModal';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
@@ -23,6 +25,7 @@ import { useFields } from './hooks/useFields';
 import { useKnowledge } from './hooks/useKnowledge';
 import { useGrowthPhase } from './hooks/useGrowthPhase';
 import { useUserRole } from './hooks/useUserRole';
+import { useHistoricalWeather } from './hooks/useHistoricalWeather';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 
@@ -30,6 +33,7 @@ function App() {
   const { fields, addField, deleteField, updateField } = useFields();
   const [selectedFieldId, setSelectedFieldId] = useState<string>(fields[0]?.id ?? 'F001');
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
+  const [printReportOpen, setPrintReportOpen] = useState(false);
   const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { rules, addRule, toggleRule, deleteRule } = useKnowledge();
@@ -45,6 +49,14 @@ function App() {
     selectedField?.lat ?? fields[0]?.lat ?? 34.92,
     selectedField?.lon ?? fields[0]?.lon ?? 133.05,
     selectedFieldId
+  );
+
+  // 昨年度の気温アーカイブ（収穫期・梅雨期のみ取得）
+  const shouldFetchHistory = (phase === '収穫期' || phase === '梅雨期') && !!floweringDate;
+  const { data: lastYearData, loading: lastYearLoading } = useHistoricalWeather(
+    shouldFetchHistory ? (selectedField?.lat ?? 34.92) : 0,
+    shouldFetchHistory ? (selectedField?.lon ?? 133.05) : 0,
+    shouldFetchHistory ? floweringDate : ''
   );
 
   const correctedForecast = useWeatherCorrection(forecast, selectedField, params);
@@ -70,7 +82,7 @@ function App() {
     return past14.map((w) => applyWeatherCorrection(w, selectedField, params));
   }, [past14, selectedField, params]);
 
-  // 春季の霜アラート（7日以内に最低気温3℃以下）
+  // 春季の霜アラート
   const frostAlertDay = phase === '春季'
     ? correctedForecast.slice(0, 7).find((d) => d.correctedTempMin <= 3)
     : null;
@@ -134,6 +146,19 @@ function App() {
           <RainNowcastCard hourly={hourly} minutely={minutely} />
         )}
 
+        {/* 積算温度グラフ（梅雨期・収穫期） */}
+        {(phase === '梅雨期' || phase === '収穫期') && floweringDate && (
+          <AccumulatedTempCard
+            floweringDate={floweringDate}
+            crop={selectedField?.crop ?? ''}
+            past14={past14}
+            forecast={correctedForecast}
+            lastYearData={lastYearData}
+            lastYearLoading={lastYearLoading}
+            fieldName={selectedField?.name ?? ''}
+          />
+        )}
+
         {/* 出荷予測（収穫期のみ） */}
         {phase === '収穫期' && (
           <ShipmentForecastCard
@@ -145,6 +170,24 @@ function App() {
             crackRiskScore={crackRisk?.score ?? 0}
             role={role}
           />
+        )}
+
+        {/* 製菓会社向けレポート出力ボタン（管理者・収穫期または梅雨期） */}
+        {isAdmin && (phase === '収穫期' || phase === '梅雨期') && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
+            <div>
+              <p className="font-bold text-gray-700 text-sm">📄 出荷予測レポート（製菓会社提出用）</p>
+              <p className="text-xs text-gray-500 mt-0.5">
+                積算温度・出荷予測日・裂果リスク履歴をPDFで出力します
+              </p>
+            </div>
+            <button
+              onClick={() => setPrintReportOpen(true)}
+              className="bg-green-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-green-700 transition shrink-0 ml-4"
+            >
+              PDF出力
+            </button>
+          </div>
         )}
 
         {/* AI Advice */}
@@ -161,7 +204,7 @@ function App() {
           <AILearningCard logs={workLogs} />
         </div>
 
-        {/* 農家ナレッジルール（管理者のみ追加・編集） */}
+        {/* 農家ナレッジルール */}
         <KnowledgeCard
           fieldId={selectedFieldId}
           fieldName={selectedField?.name ?? ''}
@@ -201,7 +244,7 @@ function App() {
         >
           {isAdmin ? '🔑 管理者' : '👤 従業員'}
         </button>
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.1<br />
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.2<br />
         広島県庄原市総領町中領家178
       </footer>
 
@@ -221,6 +264,20 @@ function App() {
           const newField = addField(fieldData);
           setSelectedFieldId(newField.id);
         }}
+      />
+
+      {/* 製菓会社向けPDFレポート */}
+      <PrintReportModal
+        open={printReportOpen}
+        onClose={() => setPrintReportOpen(false)}
+        fieldName={selectedField?.name ?? ''}
+        location={selectedField?.location ?? ''}
+        crop={selectedField?.crop ?? ''}
+        floweringDate={floweringDate}
+        past14={past14}
+        forecast={correctedForecast}
+        lastYearData={lastYearData}
+        crackRisk={crackRisk}
       />
     </div>
   );
