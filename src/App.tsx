@@ -11,7 +11,6 @@ import { RainNowcastCard } from './components/RainNowcastCard';
 import { KnowledgeCard } from './components/KnowledgeCard';
 import { SettingsPanel } from './components/SettingsPanel';
 import { FieldRegistrationModal } from './components/FieldRegistrationModal';
-import { GrowthPhaseBar } from './components/GrowthPhaseBar';
 import { ShipmentForecastCard } from './components/ShipmentForecastCard';
 import { AccumulatedTempCard } from './components/AccumulatedTempCard';
 import { PrintReportModal } from './components/PrintReportModal';
@@ -50,7 +49,6 @@ function App() {
     selectedFieldId
   );
 
-  // 昨年度の気温アーカイブ（梅雨期・収穫期のみ取得）
   const shouldFetchHistory = (phase === '収穫期' || phase === '梅雨期') && !!floweringDate;
   const { data: lastYearData, loading: lastYearLoading } = useHistoricalWeather(
     shouldFetchHistory ? (selectedField?.lat ?? 34.92) : 0,
@@ -74,7 +72,6 @@ function App() {
     });
   }, [correctedForecast, past14, selectedField, selectedFieldId, rules, today, fruitStage]);
 
-  // 作業記録は裏でkeep（Excelエクスポート用）
   useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
 
   const correctedPast14Final = useMemo(() => {
@@ -82,14 +79,11 @@ function App() {
     return past14.map((w) => applyWeatherCorrection(w, selectedField, params));
   }, [past14, selectedField, params]);
 
-  // 春季：霜アラート
   const frostAlertDay = phase === '春季'
     ? correctedForecast.slice(0, 7).find((d) => d.correctedTempMin <= 3)
     : null;
 
-  // 裂果リスクは肥大期 or 梅雨期フェーズで表示
   const showCrackRisk = fruitStage === '肥大期' || phase === '梅雨期';
-  // 散水管理カードは梅雨期・収穫期で表示
   const showIrrigation = phase === '梅雨期' || phase === '収穫期';
 
   return (
@@ -103,7 +97,7 @@ function App() {
           </div>
         )}
 
-        {/* 春季：霜アラート */}
+        {/* 霜アラート */}
         {frostAlertDay && (
           <div className="bg-blue-50 border border-blue-300 text-blue-800 rounded-xl p-3 text-sm font-medium">
             🌡️ 霜注意アラート：{frostAlertDay.date} の最低気温{' '}
@@ -112,7 +106,6 @@ function App() {
           </div>
         )}
 
-        {/* Field selector */}
         <FieldSelector
           fields={fields}
           selectedId={selectedFieldId}
@@ -120,17 +113,6 @@ function App() {
           onAddField={() => setFieldModalOpen(true)}
           onDeleteField={deleteField}
           onUpdateRoofType={(id, roofType) => updateField(id, { roofType })}
-        />
-
-        {/* 生育フェーズ・生育ステージ */}
-        <GrowthPhaseBar
-          phase={phase}
-          fruitStage={fruitStage}
-          floweringDate={floweringDate}
-          role={role}
-          onPhaseChange={setPhase}
-          onStageChange={setFruitStage}
-          onFloweringDateChange={setFloweringDate}
         />
 
         {/* Main grid */}
@@ -141,7 +123,6 @@ function App() {
           <div>
             <WeatherSummaryCard today={today} fieldName={selectedField?.name ?? ''} />
           </div>
-          {/* 裂果リスクは肥大期のみ */}
           {showCrackRisk && (
             <div className="md:col-span-2 lg:col-span-1">
               <CrackRiskGauge risk={crackRisk} fruitStage={fruitStage} />
@@ -149,12 +130,21 @@ function App() {
           )}
         </div>
 
-        {/* 雨ナウキャスト（冬季以外） */}
         {phase !== '冬季' && (
           <RainNowcastCard hourly={hourly} minutely={minutely} />
         )}
 
-        {/* 積算温度グラフ（梅雨期・収穫期） */}
+        {showIrrigation && (
+          <IrrigationAdviceCard
+            lat={selectedField?.lat ?? 34.92}
+            past14={past14}
+            forecast={correctedForecast}
+            fruitStage={fruitStage}
+            roofType={selectedField?.roofType ?? 'open'}
+            fieldName={selectedField?.name ?? ''}
+          />
+        )}
+
         {(phase === '梅雨期' || phase === '収穫期') && floweringDate && (
           <AccumulatedTempCard
             floweringDate={floweringDate}
@@ -167,7 +157,6 @@ function App() {
           />
         )}
 
-        {/* 出荷予測（収穫期のみ） */}
         {phase === '収穫期' && (
           <ShipmentForecastCard
             fieldName={selectedField?.name ?? ''}
@@ -180,14 +169,11 @@ function App() {
           />
         )}
 
-        {/* PDF出力ボタン（管理者・梅雨期または収穫期） */}
         {isAdmin && (phase === '収穫期' || phase === '梅雨期') && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
             <div>
               <p className="font-bold text-gray-700 text-sm">📄 出荷予測レポート（青果会社・製菓会社提出用）</p>
-              <p className="text-xs text-gray-500 mt-0.5">
-                積算温度・出荷予測日・昨年比較をPDFで出力します
-              </p>
+              <p className="text-xs text-gray-500 mt-0.5">積算温度・出荷予測日・昨年比較をPDFで出力</p>
             </div>
             <button
               onClick={() => setPrintReportOpen(true)}
@@ -198,24 +184,10 @@ function App() {
           </div>
         )}
 
-        {/* 散水管理アドバイス（梅雨期・収穫期） */}
-        {showIrrigation && (
-          <IrrigationAdviceCard
-            lat={selectedField?.lat ?? 34.92}
-            past14={past14}
-            forecast={correctedForecast}
-            fruitStage={fruitStage}
-            roofType={selectedField?.roofType ?? 'open'}
-            fieldName={selectedField?.name ?? ''}
-          />
-        )}
-
-        {/* AI Advice（肥大期 or 梅雨期） */}
         {showCrackRisk && (
           <AIAdviceCard risk={crackRisk} field={selectedField} />
         )}
 
-        {/* 農家ナレッジルール */}
         <KnowledgeCard
           fieldId={selectedFieldId}
           fieldName={selectedField?.name ?? ''}
@@ -225,10 +197,7 @@ function App() {
           onDelete={isAdmin ? deleteRule : undefined}
         />
 
-        {/* Forecast table */}
         <ForecastTable forecast={correctedForecast} />
-
-        {/* Precipitation chart */}
         <PrecipitationChart past14={past14} correctedPast14={correctedPast14Final} />
 
         {loading && (
@@ -242,7 +211,7 @@ function App() {
             onClick={() => setSettingsOpen(true)}
             className="absolute left-4 bottom-6 flex items-center gap-1 text-xs text-gray-400 hover:text-green-600 transition-colors"
           >
-            ⚙️ 補正パラメータ設定
+            ⚙️ 管理者設定
           </button>
         )}
         <button
@@ -255,7 +224,7 @@ function App() {
         >
           {isAdmin ? '🔑 管理者' : '👤 従業員'}
         </button>
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.3<br />
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.4<br />
         広島県庄原市総領町中領家178
       </footer>
 
@@ -266,6 +235,12 @@ function App() {
         onSave={updateParams}
         onReset={resetParams}
         fieldName={selectedField?.name}
+        phase={phase}
+        fruitStage={fruitStage}
+        floweringDate={floweringDate}
+        onPhaseChange={setPhase}
+        onStageChange={setFruitStage}
+        onFloweringDateChange={setFloweringDate}
       />
 
       <FieldRegistrationModal
