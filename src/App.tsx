@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Header } from './components/Header';
+import { LoginScreen } from './components/LoginScreen';
+import { HelpModal } from './components/HelpModal';
 import { FieldSelector } from './components/FieldSelector';
 import { FieldMap } from './components/FieldMap';
 import { WeatherSummaryCard } from './components/WeatherSummaryCard';
@@ -22,12 +24,32 @@ import { useCorrectionParams } from './hooks/useCorrectionParams';
 import { useFields } from './hooks/useFields';
 import { useKnowledge } from './hooks/useKnowledge';
 import { useGrowthPhase } from './hooks/useGrowthPhase';
-import { useUserRole } from './hooks/useUserRole';
+import { useAuth } from './hooks/useAuth';
+import type { AuthUser } from './hooks/useAuth';
 import { useHistoricalWeather } from './hooks/useHistoricalWeather';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 
 function App() {
+  const { user, login, logout } = useAuth();
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  if (!user) {
+    return <LoginScreen login={login} />;
+  }
+
+  return <Dashboard user={user} onLogout={logout} onHelp={() => setHelpOpen(true)} helpOpen={helpOpen} onHelpClose={() => setHelpOpen(false)} />;
+}
+
+function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
+  user: AuthUser;
+  onLogout: () => void;
+  onHelp: () => void;
+  helpOpen: boolean;
+  onHelpClose: () => void;
+}) {
+  const isAdmin = user.role === '管理者';
+
   const { fields, addField, deleteField, updateField } = useFields();
   const [selectedFieldId, setSelectedFieldId] = useState<string>(fields[0]?.id ?? 'F001');
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
@@ -35,7 +57,6 @@ function App() {
   const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { rules, addRule, toggleRule, deleteRule } = useKnowledge();
-  const { role, isAdmin, setRole } = useUserRole();
   const {
     phase, fruitStage, floweringDate,
     setPhase, setFruitStage, setFloweringDate,
@@ -88,7 +109,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <Header lastUpdated={lastUpdated} onRefresh={refetch} loading={loading} />
+      <Header lastUpdated={lastUpdated} onRefresh={refetch} loading={loading} user={user} onLogout={onLogout} onHelp={onHelp} />
 
       <main className="max-w-7xl mx-auto px-4 py-4 space-y-4">
         {error && (
@@ -165,7 +186,7 @@ function App() {
             past14={past14}
             forecast={correctedForecast}
             crackRiskScore={crackRisk?.score ?? 0}
-            role={role}
+            role={user.role}
           />
         )}
 
@@ -215,18 +236,16 @@ function App() {
           </button>
         )}
         <button
-          onClick={() => setRole(isAdmin ? '従業員' : '管理者')}
-          className={`absolute right-4 bottom-6 flex items-center gap-1 text-xs px-2 py-1 rounded-full border transition-colors
-            ${isAdmin
-              ? 'bg-green-50 text-green-700 border-green-300 hover:bg-green-100'
-              : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-            }`}
+          onClick={onLogout}
+          className="absolute right-4 bottom-6 flex items-center gap-1 text-xs px-2 py-1 rounded-full border bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100 transition-colors sm:hidden"
         >
-          {isAdmin ? '🔑 管理者' : '👤 従業員'}
+          ログアウト
         </button>
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.4<br />
+        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.5<br />
         広島県庄原市総領町中領家178
       </footer>
+
+      <HelpModal open={helpOpen} onClose={onHelpClose} />
 
       <SettingsPanel
         open={settingsOpen}
