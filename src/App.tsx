@@ -192,10 +192,10 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
           />
         )}
 
-        {isAdmin && (phase === '収穫期' || phase === '梅雨期') && (
+        {isAdmin && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
             <div>
-              <p className="font-bold text-gray-700 text-sm">📄 出荷予測レポート（青果会社・製菓会社提出用）</p>
+              <p className="font-bold text-gray-700 text-sm">📄 出荷予測レポート（青果会社提出用）</p>
               <p className="text-xs text-gray-500 mt-0.5">積算温度・出荷予測日・昨年比較をPDFで出力</p>
             </div>
             <button
@@ -250,7 +250,7 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
           📄 取扱説明書
         </button>
         <span className="mx-2 text-gray-300">|</span>
-        © 2025 株式会社ラファティリティ | v1.5<br />
+        © 2026 株式会社ラファティリティ | v1.5<br />
         広島県庄原市総領町中領家178
       </footer>
 

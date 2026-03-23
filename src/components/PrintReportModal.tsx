@@ -120,7 +120,7 @@ export function PrintReportModal({
         <div className="print-content bg-white rounded-xl shadow-2xl w-full max-w-3xl my-4">
           {/* 操作ボタン */}
           <div className="no-print flex items-center justify-between px-6 py-3 border-b border-gray-200">
-            <span className="text-sm text-gray-500">出荷予測レポート（PDF出力）</span>
+            <span className="text-sm text-gray-500">出荷予測レポート（青果会社提出用・PDF出力）</span>
             <div className="flex gap-2">
               <button
                 onClick={() => window.print()}
@@ -141,7 +141,7 @@ export function PrintReportModal({
           <div className="p-8 text-gray-800">
             {/* ヘッダー */}
             <div className="text-center border-b-2 border-green-600 pb-5 mb-7">
-              <p className="text-xs text-gray-500 mb-1 tracking-widest">株式会社ラファティリティ</p>
+              <p className="text-xs text-gray-500 mb-1 tracking-widest">株式会社ラファティリティ　青果会社提出用</p>
               <h1 className="text-2xl font-bold text-gray-900">
                 {year}年産 ぶどう出荷予測レポート
               </h1>

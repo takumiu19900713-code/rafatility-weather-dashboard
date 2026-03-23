@@ -85,7 +85,7 @@ export const LoginScreen: React.FC<Props> = ({ login }) => {
         </div>
       </div>
 
-      <p className="text-green-400 text-xs mt-6">© 2025 株式会社ラファティリティ</p>
+      <p className="text-green-400 text-xs mt-6">© 2026 株式会社ラファティリティ</p>
     </div>
   );
 };

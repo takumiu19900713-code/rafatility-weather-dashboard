@@ -195,7 +195,7 @@ export const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                     ['9',  '📋 7日間予報テーブル',  '圃場補正済みの気温・降水量一覧', '常時'],
                     ['10', '📊 降水量グラフ',       '過去14日の補正前後の降水量比較', '常時'],
                     ['11', '📚 ナレッジ管理',       '農家固有のルール登録。裂果リスク計算に反映', '常時（編集は管理者のみ）'],
-                    ['12', '📄 PDF出荷予測レポート','青果会社・製菓会社提出用PDF。積算温度・出荷予測日・昨年比較', '収穫期・梅雨期（管理者のみ）'],
+                    ['12', '📄 PDF出荷予測レポート','青果会社提出用PDF。積算温度・出荷予測日・昨年比較', '収穫期・梅雨期（管理者のみ）'],
                     ['13', '⚙️ 管理者設定',        '生育フェーズ・ステージ・開花日・気象補正パラメータの設定', '管理者のみ'],
                   ].map(([num, name, desc, condition]) => (
                     <tr key={num} className="border-b border-gray-100">
@@ -237,7 +237,7 @@ export const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                   {
                     phase: '🍇 収穫期（8〜9月）',
                     color: 'bg-purple-50 border-purple-200',
-                    items: ['出荷予測カードで出荷日を管理', 'PDF出力で青果会社・製菓会社に報告', '散水管理で糖度アップをサポート', '積算温度の昨年比較で収穫量を予測'],
+                    items: ['出荷予測カードで出荷日を管理', 'PDF出力で青果会社に報告', '散水管理で糖度アップをサポート', '積算温度の昨年比較で収穫量を予測'],
                   },
                 ].map((p) => (
                   <div key={p.phase} className={`rounded-xl border p-3 ${p.color}`}>
@@ -283,7 +283,7 @@ export const ManualModal: React.FC<Props> = ({ open, onClose }) => {
                 <div className="border border-gray-200 rounded-xl p-4">
                   <p className="font-bold text-gray-700 mb-1">📄 PDF出荷予測レポート</p>
                   <ul className="text-xs text-gray-500 space-y-1 list-disc list-inside">
-                    <li>青果会社・製菓会社提出用のレポートをPDFで出力できます</li>
+                    <li>青果会社提出用のレポートをPDFで出力できます</li>
                     <li>積算温度・出荷予測日・昨年同期比較が1枚にまとまります</li>
                     <li>収穫期・梅雨期に表示される「PDF出力」ボタンから起動</li>
                   </ul>
@@ -298,7 +298,7 @@ export const ManualModal: React.FC<Props> = ({ open, onClose }) => {
               </h2>
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs font-bold text-orange-600 mb-2">▶ Phase 2（2025年秋〜冬・実証実験後）</p>
+                  <p className="text-xs font-bold text-orange-600 mb-2">▶ Phase 2（2026年秋〜冬・実証実験後）</p>
                   <div className="space-y-2">
                     {[
                       ['📲 LINE通知',          '裂果リスク高・散水アラート・霜注意を自動でLINE通知'],
