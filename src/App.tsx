@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { Header } from './components/Header';
 import { LoginScreen } from './components/LoginScreen';
 import { HelpModal } from './components/HelpModal';
+import { ManualModal } from './components/ManualModal';
 import { FieldSelector } from './components/FieldSelector';
 import { FieldMap } from './components/FieldMap';
 import { WeatherSummaryCard } from './components/WeatherSummaryCard';
@@ -54,6 +55,7 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
   const [selectedFieldId, setSelectedFieldId] = useState<string>(fields[0]?.id ?? 'F001');
   const [fieldModalOpen, setFieldModalOpen] = useState(false);
   const [printReportOpen, setPrintReportOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
   const { params, updateParams, resetParams } = useCorrectionParams(selectedFieldId);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { rules, addRule, toggleRule, deleteRule } = useKnowledge();
@@ -241,11 +243,19 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
         >
           ログアウト
         </button>
-        © 2025 株式会社ラファティリティ | 圃場単位気象AI補正ダッシュボード v1.5<br />
+        <button
+          onClick={() => setManualOpen(true)}
+          className="text-gray-400 hover:text-green-600 underline transition-colors"
+        >
+          📄 取扱説明書
+        </button>
+        <span className="mx-2 text-gray-300">|</span>
+        © 2025 株式会社ラファティリティ | v1.5<br />
         広島県庄原市総領町中領家178
       </footer>
 
       <HelpModal open={helpOpen} onClose={onHelpClose} />
+      <ManualModal open={manualOpen} onClose={() => setManualOpen(false)} />
 
       <SettingsPanel
         open={settingsOpen}
