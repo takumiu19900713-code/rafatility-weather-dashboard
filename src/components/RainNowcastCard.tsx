@@ -123,6 +123,9 @@ export const RainNowcastCard: React.FC<Props> = ({ hourly, minutely }) => {
                 <span className={`text-[10px] font-medium ${h.precipProbability >= 50 ? 'text-blue-500' : 'text-gray-300'}`}>
                   {h.precipProbability}%
                 </span>
+                {h.precipitation > 0 && (
+                  <span className="text-[10px] text-blue-500 font-bold">{h.precipitation}mm</span>
+                )}
               </div>
             ))}
           </div>
