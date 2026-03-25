@@ -94,9 +94,9 @@ export const RainNowcastCard: React.FC<Props> = ({ hourly, minutely }) => {
                 <span className={`text-[10px] font-bold ${i === 0 ? 'text-green-600' : 'text-gray-500'}`}>
                   {i === 0 ? '今' : formatMinuteOffset(m.minuteOffset)}
                 </span>
-                {m.precipitation > 0 && (
-                  <span className="text-[10px] text-blue-500 font-bold">{m.precipitation}mm</span>
-                )}
+                <span className={`text-[10px] font-bold ${m.precipitation > 0 ? 'text-blue-500' : 'text-gray-300'}`}>
+                  {m.precipitation}mm
+                </span>
               </div>
             ))}
           </div>
@@ -123,9 +123,9 @@ export const RainNowcastCard: React.FC<Props> = ({ hourly, minutely }) => {
                 <span className={`text-[10px] font-medium ${h.precipProbability >= 50 ? 'text-blue-500' : 'text-gray-300'}`}>
                   {h.precipProbability}%
                 </span>
-                {h.precipitation > 0 && (
-                  <span className="text-[10px] text-blue-500 font-bold">{h.precipitation}mm</span>
-                )}
+                <span className={`text-[10px] font-bold ${h.precipitation > 0 ? 'text-blue-500' : 'text-gray-300'}`}>
+                  {h.precipitation}mm
+                </span>
               </div>
             ))}
           </div>
