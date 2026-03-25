@@ -22,6 +22,7 @@ import { AccumulatedSunshineCard } from './components/AccumulatedSunshineCard';
 import { PrintReportModal } from './components/PrintReportModal';
 import { IrrigationAdviceCard } from './components/IrrigationAdviceCard';
 import { YearlyAnalysisCard } from './components/YearlyAnalysisCard';
+import { MonthlyDetailCard } from './components/MonthlyDetailCard';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
@@ -463,6 +464,13 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
 
           {/* 年間データ分析（期間選択） */}
           <YearlyAnalysisCard
+            lat={selectedField?.lat ?? 34.92}
+            lon={selectedField?.lon ?? 133.05}
+            fieldName={selectedField?.name ?? ''}
+          />
+
+          {/* 月別日次データ */}
+          <MonthlyDetailCard
             lat={selectedField?.lat ?? 34.92}
             lon={selectedField?.lon ?? 133.05}
             fieldName={selectedField?.name ?? ''}
