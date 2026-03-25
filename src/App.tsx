@@ -23,6 +23,7 @@ import { PrintReportModal } from './components/PrintReportModal';
 import { IrrigationAdviceCard } from './components/IrrigationAdviceCard';
 import { YearlyAnalysisCard } from './components/YearlyAnalysisCard';
 import { MonthlyDetailCard } from './components/MonthlyDetailCard';
+import { WorkLogCard } from './components/WorkLogCard';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
@@ -44,7 +45,8 @@ type HomeView =
   | 'accumulated'
   | 'shipment'
   | 'knowledge'
-  | 'ai_advice';
+  | 'ai_advice'
+  | 'worklog';
 
 function App() {
   const { user, login, logout } = useAuth();
@@ -111,7 +113,7 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
     });
   }, [correctedForecast, past14, selectedField, selectedFieldId, rules, today, fruitStage]);
 
-  useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
+  const { logs: workLogs, addLog, updateOutcome } = useWorkLog(selectedFieldId, crackRisk?.score ?? 0, today);
 
   const correctedPast14Final = useMemo(() => {
     if (!selectedField || past14.length === 0) return [];
@@ -184,6 +186,12 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
       label: 'AIアドバイス',
       sub: showCrackRisk ? '裂果対策レコメンド' : '肥大期・梅雨期に表示',
       disabled: !showCrackRisk,
+    },
+    {
+      id: 'worklog',
+      icon: '📝',
+      label: '作業記録',
+      sub: workLogs.length > 0 ? `${workLogs.length}件記録済み` : '散水・収穫・裂果発見など',
     },
     {
       id: 'knowledge',
@@ -365,6 +373,21 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
               <SubPageHeader title="🤖 AIアドバイス" onBack={() => setHomeView('menu')} />
               <div className="px-4">
                 <AIAdviceCard risk={crackRisk} field={selectedField} />
+              </div>
+            </div>
+          )}
+
+          {/* ─── 作業記録 詳細 ─── */}
+          {homeView === 'worklog' && (
+            <div>
+              <SubPageHeader title="📝 作業記録" onBack={() => setHomeView('menu')} />
+              <div className="px-4">
+                <WorkLogCard
+                  fieldName={selectedField?.name ?? ''}
+                  logs={workLogs}
+                  onAdd={addLog}
+                  onUpdateOutcome={updateOutcome}
+                />
               </div>
             </div>
           )}

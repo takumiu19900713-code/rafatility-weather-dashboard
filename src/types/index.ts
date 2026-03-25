@@ -118,7 +118,10 @@ export type WorkAction =
   | 'stop_irrigate'  // 散水停止
   | 'harvest'        // 収穫した
   | 'bagging'        // 袋かけ
-  | 'inspection';    // 点検した
+  | 'inspection'     // 点検・観察
+  | 'crack_found'    // 裂果発見
+  | 'fertilize'      // 施肥した
+  | 'spray';         // 農薬散布
 
 // 作業記録
 export interface WorkLog {
