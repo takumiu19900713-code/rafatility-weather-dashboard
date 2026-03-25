@@ -96,6 +96,8 @@ export interface HourlyWeather {
   precipProbability: number;
   weatherCode: number;
   temperature: number;
+  humidity: number;    // 相対湿度 %
+  windspeed: number;   // 風速 m/s
 }
 
 export interface WeatherApiResponse {

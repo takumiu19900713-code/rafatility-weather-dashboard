@@ -60,7 +60,7 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
       const [forecastRes, pastRes, hourlyRes, minutelyRes] = await Promise.all([
         fetch(`${base}?${commonParams}&${dailyParams}&forecast_days=7`),
         fetch(`${base}?${commonParams}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,weathercode,windspeed_10m_max,precipitation_probability_max,sunshine_duration&past_days=14&forecast_days=1`),
-        fetch(`${base}?${commonParams}&hourly=precipitation,precipitation_probability,weathercode,temperature_2m&forecast_days=2`),
+        fetch(`${base}?${commonParams}&hourly=precipitation,precipitation_probability,weathercode,temperature_2m,relativehumidity_2m,windspeed_10m&forecast_days=2`),
         fetch(`${base}?${commonParams}&minutely_15=precipitation,weather_code,temperature_2m&forecast_days=1`),
       ]);
 
@@ -85,6 +85,8 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
           precipProbability: hourlyData.hourly.precipitation_probability[i] ?? 0,
           weatherCode: hourlyData.hourly.weathercode[i] ?? 0,
           temperature: hourlyData.hourly.temperature_2m[i] ?? 0,
+          humidity: hourlyData.hourly.relativehumidity_2m[i] ?? 0,
+          windspeed: Math.round((hourlyData.hourly.windspeed_10m[i] ?? 0) * 10) / 10,
         }))
         .filter((h: HourlyWeather) => {
           const d = h.time.split('T')[0];
@@ -107,7 +109,7 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
                 temperature: minutelyData.minutely_15.temperature_2m[i] ?? 0,
               };
             })
-            .filter((m: MinutelyWeather) => m.minuteOffset >= -7 && m.minuteOffset <= 120)
+            .filter((m: MinutelyWeather) => m.minuteOffset >= -7 && m.minuteOffset <= 30)
         : [];
 
       setForecast(parsedForecast);

@@ -446,7 +446,7 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
       {/* ══════════ 気象 タブ ══════════ */}
       {activeTab === 'weather' && (
         <div className="px-4 pt-3 space-y-3">
-          <WeatherSummaryCard today={today} fieldName={selectedField?.name ?? ''} />
+          <WeatherSummaryCard today={today} hourly={hourly} fieldName={selectedField?.name ?? ''} />
           {phase !== '冬季' && <RainNowcastCard hourly={hourly} minutely={minutely} />}
           <ForecastTable forecast={correctedForecast} />
           <PrecipitationChart past14={past14} correctedPast14={correctedPast14Final} />
