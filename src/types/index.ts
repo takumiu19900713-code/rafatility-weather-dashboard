@@ -51,6 +51,7 @@ export interface DailyWeather {
   weatherCode: number;
   windspeed: number;
   humidityMax: number;
+  sunshineDuration: number; // 日照時間（時間）
 }
 
 export interface CorrectedWeather extends DailyWeather {
@@ -107,6 +108,7 @@ export interface WeatherApiResponse {
     weathercode: number[];
     windspeed_10m_max: number[];
     relative_humidity_2m_max: number[];
+    sunshine_duration: number[]; // 秒単位
   };
 }
 

@@ -19,6 +19,7 @@ function parseApiResponse(data: WeatherApiResponse): DailyWeather[] {
     weatherCode: data.daily.weathercode[i] ?? 0,
     windspeed: data.daily.windspeed_10m_max[i] ?? 0,
     humidityMax: data.daily.relative_humidity_2m_max[i] ?? 0,
+    sunshineDuration: (data.daily.sunshine_duration?.[i] ?? 0) / 3600, // 秒→時間
   }));
 }
 
@@ -54,11 +55,11 @@ export function useWeatherData(lat: number, lon: number, fieldId: string) {
 
       const base = 'https://api.open-meteo.com/v1/forecast';
       const commonParams = `latitude=${lat}&longitude=${lon}&timezone=Asia%2FTokyo`;
-      const dailyParams = 'daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weathercode,windspeed_10m_max,relative_humidity_2m_max';
+      const dailyParams = 'daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weathercode,windspeed_10m_max,relative_humidity_2m_max,sunshine_duration';
 
       const [forecastRes, pastRes, hourlyRes, minutelyRes] = await Promise.all([
         fetch(`${base}?${commonParams}&${dailyParams}&forecast_days=7`),
-        fetch(`${base}?${commonParams}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,weathercode,windspeed_10m_max,precipitation_probability_max&past_days=14&forecast_days=1`),
+        fetch(`${base}?${commonParams}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,relative_humidity_2m_max,weathercode,windspeed_10m_max,precipitation_probability_max,sunshine_duration&past_days=14&forecast_days=1`),
         fetch(`${base}?${commonParams}&hourly=precipitation,precipitation_probability,weathercode,temperature_2m&forecast_days=2`),
         fetch(`${base}?${commonParams}&minutely_15=precipitation,weather_code,temperature_2m&forecast_days=1`),
       ]);

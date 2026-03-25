@@ -156,7 +156,8 @@ export function AccumulatedTempCard({
         )}
       </div>
       <p className="text-xs text-gray-500 mb-3">
-        基準温度10℃ / 品種: {crop || '未設定'} / 目標積算温度: <strong>{gddTarget}℃・日</strong>
+        有効積算温度（基準10℃）/ 品種: {crop || '未設定'} / 出荷目標: <strong>{gddTarget}℃・日</strong>
+        <span className="text-gray-400 ml-2">※他作物の場合は管理者設定で基準温度を変更予定</span>
       </p>
 
       <ResponsiveContainer width="100%" height={260}>

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 
 export interface HistoricalDay {
-  date: string;       // YYYY-MM-DD
+  date: string;           // YYYY-MM-DD
   tempMax: number;
   tempMin: number;
-  gdd: number;        // 日別積算温度（基準温度10℃）
+  gdd: number;            // 日別有効積算温度（基準温度10℃）
+  avgTemp: number;        // 日平均気温
+  sunshineDuration: number; // 日照時間（時間）
 }
 
 const CACHE_PREFIX = 'rafatility_historical_';
@@ -52,7 +54,7 @@ export function useHistoricalWeather(
     } catch { /* ignore */ }
 
     setLoading(true);
-    const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&start_date=${lastYearStart}&end_date=${lastYearEnd}&daily=temperature_2m_max,temperature_2m_min&timezone=Asia%2FTokyo`;
+    const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&start_date=${lastYearStart}&end_date=${lastYearEnd}&daily=temperature_2m_max,temperature_2m_min,sunshine_duration&timezone=Asia%2FTokyo`;
 
     fetch(url)
       .then((r) => r.json())
@@ -60,6 +62,7 @@ export function useHistoricalWeather(
         const times: string[] = json.daily?.time ?? [];
         const maxTemps: number[] = json.daily?.temperature_2m_max ?? [];
         const minTemps: number[] = json.daily?.temperature_2m_min ?? [];
+        const sunSecs: number[] = json.daily?.sunshine_duration ?? [];
 
         const parsed: HistoricalDay[] = times.map((t, i) => {
           const avg = (maxTemps[i] + minTemps[i]) / 2;
@@ -67,7 +70,9 @@ export function useHistoricalWeather(
             date: t,
             tempMax: maxTemps[i],
             tempMin: minTemps[i],
+            avgTemp: avg,
             gdd: Math.max(0, avg - 10),
+            sunshineDuration: (sunSecs[i] ?? 0) / 3600,
           };
         });
 

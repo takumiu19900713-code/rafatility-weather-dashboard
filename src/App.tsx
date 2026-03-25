@@ -16,6 +16,7 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { FieldRegistrationModal } from './components/FieldRegistrationModal';
 import { ShipmentForecastCard } from './components/ShipmentForecastCard';
 import { AccumulatedTempCard } from './components/AccumulatedTempCard';
+import { AccumulatedSunshineCard } from './components/AccumulatedSunshineCard';
 import { PrintReportModal } from './components/PrintReportModal';
 import { IrrigationAdviceCard } from './components/IrrigationAdviceCard';
 import { useWeatherData } from './hooks/useWeatherData';
@@ -172,6 +173,17 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
           <AccumulatedTempCard
             floweringDate={floweringDate}
             crop={selectedField?.crop ?? ''}
+            past14={past14}
+            forecast={correctedForecast}
+            lastYearData={lastYearData}
+            lastYearLoading={lastYearLoading}
+            fieldName={selectedField?.name ?? ''}
+          />
+        )}
+
+        {(phase === '梅雨期' || phase === '収穫期') && floweringDate && (
+          <AccumulatedSunshineCard
+            startDate={floweringDate}
             past14={past14}
             forecast={correctedForecast}
             lastYearData={lastYearData}
