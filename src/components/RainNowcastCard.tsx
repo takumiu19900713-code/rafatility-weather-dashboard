@@ -137,18 +137,6 @@ export const RainNowcastCard: React.FC<Props> = ({ hourly, minutely }) => {
             ))}
           </div>
 
-          {/* mm値行（降水あり列のみ表示） */}
-          <div className="flex gap-0.5 mt-0.5">
-            {minutely.map((m) => (
-              <div key={m.time} className="flex-1 text-center">
-                {m.precipitation > 0 ? (
-                  <span className="text-[9px] text-blue-500 font-bold leading-none">{m.precipitation}</span>
-                ) : (
-                  <span className="text-[9px] text-transparent leading-none">0</span>
-                )}
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
@@ -189,16 +177,6 @@ export const RainNowcastCard: React.FC<Props> = ({ hourly, minutely }) => {
             ))}
           </div>
 
-          {/* 降水確率行 */}
-          <div className="flex gap-1 mt-0.5">
-            {next6Hourly.map((h) => (
-              <div key={h.time} className="flex-1 text-center">
-                <span className={`text-[9px] leading-none ${h.precipProbability >= 50 ? 'text-blue-500 font-bold' : 'text-gray-300'}`}>
-                  {h.precipProbability}%
-                </span>
-              </div>
-            ))}
-          </div>
         </div>
       )}
 
