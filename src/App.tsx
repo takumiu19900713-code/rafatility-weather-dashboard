@@ -21,6 +21,7 @@ import { AccumulatedTempCard } from './components/AccumulatedTempCard';
 import { AccumulatedSunshineCard } from './components/AccumulatedSunshineCard';
 import { PrintReportModal } from './components/PrintReportModal';
 import { IrrigationAdviceCard } from './components/IrrigationAdviceCard';
+import { YearlyAnalysisCard } from './components/YearlyAnalysisCard';
 import { useWeatherData } from './hooks/useWeatherData';
 import { useWeatherCorrection } from './hooks/useWeatherCorrection';
 import { useWorkLog } from './hooks/useWorkLog';
@@ -31,6 +32,7 @@ import { useGrowthPhase } from './hooks/useGrowthPhase';
 import { useAuth } from './hooks/useAuth';
 import type { AuthUser } from './hooks/useAuth';
 import { useHistoricalWeather } from './hooks/useHistoricalWeather';
+import { useYearlyData } from './hooks/useYearlyData';
 import { calcCrackRisk } from './utils/crackRiskCalculator';
 import { applyWeatherCorrection } from './utils/weatherCorrection';
 
@@ -87,6 +89,14 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
     selectedField?.lat ?? fields[0]?.lat ?? 34.92,
     selectedField?.lon ?? fields[0]?.lon ?? 133.05,
     selectedFieldId
+  );
+
+  // 年間データ（今年・昨年・一昨年の3年分）
+  const currentYear = new Date().getFullYear();
+  const { data: yearlyDataList, loading: yearlyLoading, error: yearlyError } = useYearlyData(
+    selectedField?.lat ?? 34.92,
+    selectedField?.lon ?? 133.05,
+    [currentYear, currentYear - 1, currentYear - 2]
   );
 
   const shouldFetchHistory = (phase === '収穫期' || phase === '梅雨期') && !!floweringDate;
@@ -459,6 +469,14 @@ function Dashboard({ user, onLogout, onHelp, helpOpen, onHelpClose }: {
               crackRiskScore={crackRisk?.score ?? 0} role={user.role}
             />
           )}
+
+          {/* 年間データ分析（3ヶ年比較） */}
+          <YearlyAnalysisCard
+            dataList={yearlyDataList}
+            loading={yearlyLoading}
+            error={yearlyError}
+            fieldName={selectedField?.name ?? ''}
+          />
         </div>
       )}
 
